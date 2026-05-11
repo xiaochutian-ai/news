@@ -1,0 +1,46 @@
+.gitignore
+  bbb7585451b57c5c 27
+start_dashboard.sh
+  4bd309fa7b3a8fb7 7-8,14,33
+scripts/ensure_dashboard_env.sh
+  4bd309fa7b3a8fb7 1-92
+app/tests/test_start_dashboard_script.py
+  4bd309fa7b3a8fb7 85-91
+README.md
+  4bd309fa7b3a8fb7 13-26,36,39-41,44,63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "7bddd227388d31402976206c22316b2d31b0dd29",
+  "prompts": {
+    "4bd309fa7b3a8fb7": {
+      "agent_id": {
+        "tool": "trae",
+        "id": "6a01ec30c8fba96f133cbf66",
+        "model": "gpt-5.4__dev"
+      },
+      "human_author": "xiaochutian <xiaochutian@bytedance.com>",
+      "messages": [],
+      "total_additions": 123,
+      "total_deletions": 8,
+      "accepted_lines": 123,
+      "overriden_lines": 0
+    },
+    "bbb7585451b57c5c": {
+      "agent_id": {
+        "tool": "trae-cue",
+        "id": "ai_tab-icr-f66e2b8c-7fa3-4713-895a-7f9d87ca0218",
+        "model": "default"
+      },
+      "human_author": "xiaochutian <xiaochutian@bytedance.com>",
+      "messages": [],
+      "total_additions": 1,
+      "total_deletions": 0,
+      "accepted_lines": 1,
+      "overriden_lines": 0
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
