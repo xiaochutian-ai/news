@@ -42,6 +42,11 @@
             <span class="field-note">控制主题命中阈值与保留范围。</span>
           </label>
           <label class="field-block">
+            <span class="field-label">黑名单关键词</span>
+            <textarea name="blocked_keywords" rows="3" placeholder="用逗号、顿号或换行分隔">{{ selected_blocked_keywords_text }}</textarea>
+            <span class="field-note">命中后直接剔除，适合临时排除人物或会议主题。</span>
+          </label>
+          <label class="field-block">
             <span class="field-label">去重策略</span>
             <select name="dedupe_strategy">
               <option value="conservative" {% if selected_dedupe_strategy|default("standard") == "conservative" %}selected{% endif %}>保守</option>

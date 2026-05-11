@@ -30,6 +30,30 @@ def build_dedupe_key(article: RawArticle) -> str:
     return f"{article.source}:{article.source_id}:{normalized_title}:{normalized_url}"
 
 
+def _raw_title_key(article: RawArticle) -> str:
+    return re.sub(r"\s+", "", article.title).lower()
+
+
+def _raw_article_richness(article: RawArticle) -> tuple[int, int, int]:
+    return (
+        len((article.content or "").strip()),
+        len((article.summary or "").strip()),
+        int(article.published_at.timestamp()) if article.published_at else 0,
+    )
+
+
+def collapse_source_duplicates(raw_articles: list[RawArticle]) -> list[RawArticle]:
+    winners: dict[tuple[str, str], RawArticle] = {}
+    for article in raw_articles:
+        key = (article.source, _raw_title_key(article))
+        if not key[1]:
+            key = (article.source, article.url.rstrip("/").lower())
+        current = winners.get(key)
+        if current is None or _raw_article_richness(article) > _raw_article_richness(current):
+            winners[key] = article
+    return list(winners.values())
+
+
 def _infer_tags(article: RawArticle) -> list[str]:
     combined = f"{article.title} {article.summary} {article.content}"
     tags: list[str] = []
@@ -43,7 +67,7 @@ def _infer_tags(article: RawArticle) -> list[str]:
 
 def normalize_articles(raw_articles: list[RawArticle]) -> list[NormalizedArticle]:
     normalized: list[NormalizedArticle] = []
-    for article in raw_articles:
+    for article in collapse_source_duplicates(raw_articles):
         published_at = article.published_at or datetime.now()
         normalized.append(
             NormalizedArticle(

@@ -127,3 +127,57 @@ class StateStore:
                 ),
             )
             conn.commit()
+
+    def get_dashboard_preferences(self) -> dict[str, object] | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                """
+                SELECT selected_sources_json, filter_strategy, blocked_keywords_text, time_strategies_json, dedupe_strategy
+                FROM dashboard_preferences
+                WHERE preference_key = ?
+                """,
+                ("default",),
+            ).fetchone()
+        if row is None:
+            return None
+        return {
+            "selected_sources": json.loads(row["selected_sources_json"]),
+            "filter_strategy": row["filter_strategy"],
+            "blocked_keywords_text": row["blocked_keywords_text"],
+            "time_strategies": json.loads(row["time_strategies_json"]),
+            "dedupe_strategy": row["dedupe_strategy"],
+        }
+
+    def save_dashboard_preferences(
+        self,
+        *,
+        selected_sources: list[str],
+        filter_strategy: str,
+        blocked_keywords_text: str,
+        time_strategies: list[str],
+        dedupe_strategy: str,
+    ) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO dashboard_preferences(
+                    preference_key,
+                    selected_sources_json,
+                    filter_strategy,
+                    blocked_keywords_text,
+                    time_strategies_json,
+                    dedupe_strategy,
+                    updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    "default",
+                    json.dumps(selected_sources, ensure_ascii=False),
+                    filter_strategy,
+                    blocked_keywords_text,
+                    json.dumps(time_strategies, ensure_ascii=False),
+                    dedupe_strategy,
+                    datetime.now().isoformat(),
+                ),
+            )
+            conn.commit()

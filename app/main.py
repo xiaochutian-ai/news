@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from collections.abc import Iterable
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
@@ -41,6 +42,7 @@ def run_digest(
     digest_date: str | None = None,
     selected_sources: list[str] | None = None,
     filter_strategy: str = "standard",
+    blocked_keywords: Iterable[str] | None = None,
     time_strategies: list[str] | None = None,
     dedupe_strategy: str = "standard",
 ) -> dict[str, object]:
@@ -59,6 +61,7 @@ def run_digest(
     filtered = filter_articles(
         normalized,
         strategy=filter_strategy,
+        blocked_keywords=blocked_keywords,
         time_strategies=resolved_time_strategies,
         source_date=ctx["source_date"],
         digest_date=ctx["digest_date"],

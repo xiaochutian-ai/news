@@ -1,5 +1,7 @@
 from datetime import datetime
 
+from app.models import RawArticle
+from app.pipeline.fetch import normalize_articles
 from app.sources.cctv import (
     CCTVAdapter,
     parse_cctv_channel_page,
@@ -26,6 +28,34 @@ def test_parse_people_daily_index_extracts_articles() -> None:
     assert len(articles) == 2
     assert articles[0].title == "各地办理“全国通办”68.2万件"
     assert articles[0].url == "https://data.people.com.cn/rmrb/20260510/1/abc123"
+
+
+def test_normalize_articles_collapses_same_source_duplicate_titles_before_filtering() -> None:
+    duplicate_brief = RawArticle(
+        source="cctv",
+        source_id="dup-1",
+        title="一季度全国消协组织为消费者挽回经济损失2.16亿元",
+        url="https://news.cctv.com/2026/05/11/ARTI1.shtml",
+        published_at=datetime(2026, 5, 11, 21, 30, 0),
+        summary="简略摘要",
+        content="简略摘要",
+    )
+    duplicate_rich = RawArticle(
+        source="cctv",
+        source_id="dup-2",
+        title="一季度全国消协组织为消费者挽回经济损失2.16亿元",
+        url="https://news.cctv.com/2026/05/11/ARTI2.shtml",
+        published_at=datetime(2026, 5, 11, 21, 30, 0),
+        summary="更完整的摘要",
+        content="更完整的摘要\n补充正文",
+    )
+
+    normalized = normalize_articles([duplicate_brief, duplicate_rich])
+
+    assert len(normalized) == 1
+    assert normalized[0].source == "cctv"
+    assert normalized[0].summary == "更完整的摘要"
+    assert normalized[0].content == "更完整的摘要\n补充正文"
 
 
 def test_parse_cctv_rss_extracts_items() -> None:

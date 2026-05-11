@@ -52,6 +52,29 @@ def test_filter_articles_respects_strategy_levels() -> None:
     assert filter_articles(articles, strategy="strict") == [strict_hit]
 
 
+def test_filter_articles_supports_custom_blocked_keywords() -> None:
+    blocked = _article(
+        title="地方两会部署教育改革",
+        summary="围绕教育公共服务展开",
+        source_id="custom-1",
+        url="https://example.com/custom-1",
+    )
+    allowed = _article(
+        title="社区医保服务提升",
+        summary="医保与公共服务同步优化",
+        source_id="custom-2",
+        url="https://example.com/custom-2",
+    )
+
+    filtered = filter_articles(
+        [blocked, allowed],
+        strategy="standard",
+        blocked_keywords=["两会"],
+    )
+
+    assert filtered == [allowed]
+
+
 def test_deduplicate_articles_respects_strategy_levels() -> None:
     first = _article(
         title="民生政策解读",

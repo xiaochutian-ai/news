@@ -23,3 +23,13 @@ CREATE TABLE IF NOT EXISTS publish_history (
     message TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS dashboard_preferences (
+    preference_key TEXT PRIMARY KEY,
+    selected_sources_json TEXT NOT NULL,
+    filter_strategy TEXT NOT NULL,
+    blocked_keywords_text TEXT NOT NULL,
+    time_strategies_json TEXT NOT NULL,
+    dedupe_strategy TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);

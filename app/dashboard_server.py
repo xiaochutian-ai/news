@@ -2,63 +2,83 @@ from __future__ import annotations
 
 import json
 import mimetypes
+import re
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, unquote
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
+from app.config import AppConfig
 from app.main import run_digest
+from app.pipeline.filter import DEFAULT_BLOCKED_KEYWORDS
 from app.pipeline.time_filter import TIME_STRATEGY_OPTIONS
 from app.sources.registry import list_available_sources
+from app.storage.state import StateStore
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 STAGE_SECTIONS = [
-    {"key": "raw_articles", "label": "原始候选明细"},
-    {"key": "filtered_articles", "label": "过滤后明细"},
-    {"key": "deduped_articles", "label": "去重后明细"},
-    {"key": "chosen_articles", "label": "最终入选明细"},
+    {"key": "raw_articles", "label": "获取"},
+    {"key": "filtered_articles", "label": "过滤"},
+    {"key": "deduped_articles", "label": "去重"},
+    {"key": "chosen_articles", "label": "入选"},
 ]
 STAGE_PAIR_OPTIONS = [
     {
+        "key": "raw_articles",
+        "button_label": "获取",
+        "button_meta": "查看各源抓取聚合结果",
+        "previous_key": None,
+        "previous_label": "各源抓取聚合",
+        "previous_hint": "抓取入池后的候选基线",
+        "current_key": "raw_articles",
+        "current_label": "获取阶段结果",
+        "current_hint": "已进入候选池",
+        "status_copy": "抓取入池",
+        "removed_reason": "获取阶段不做淘汰",
+    },
+    {
         "key": "filtered_articles",
-        "button_label": "过滤后明细",
-        "button_meta": "查看原始候选与过滤后",
+        "button_label": "过滤",
+        "button_meta": "查看过滤前后差异",
         "previous_key": "raw_articles",
-        "previous_label": "原始候选明细",
-        "previous_hint": "过滤前候选",
+        "previous_label": "过滤前聚合结果",
+        "previous_hint": "抓取聚合后的候选全量",
         "current_key": "filtered_articles",
-        "current_label": "过滤后明细",
-        "current_hint": "通过主题过滤",
-        "status_copy": "通过主题过滤",
+        "current_label": "过滤后结果",
+        "current_hint": "通过主题与黑名单过滤",
+        "status_copy": "通过主题与黑名单过滤",
+        "removed_reason": "未通过主题过滤或命中黑名单",
     },
     {
         "key": "deduped_articles",
-        "button_label": "去重后明细",
-        "button_meta": "默认对比阶段",
+        "button_label": "去重",
+        "button_meta": "查看重复项收敛结果",
         "previous_key": "filtered_articles",
-        "previous_label": "过滤后明细",
-        "previous_hint": "去重前结果",
+        "previous_label": "去重前聚合结果",
+        "previous_hint": "过滤后进入去重的候选全量",
         "current_key": "deduped_articles",
-        "current_label": "去重后明细",
+        "current_label": "去重后结果",
         "current_hint": "通过去重校验",
         "status_copy": "通过去重校验",
+        "removed_reason": "命中重复项，被本轮去重淘汰",
     },
     {
         "key": "chosen_articles",
-        "button_label": "最终入选明细",
-        "button_meta": "查看最终入选结果",
+        "button_label": "入选",
+        "button_meta": "查看最终排序结果",
         "previous_key": "deduped_articles",
-        "previous_label": "去重后明细",
-        "previous_hint": "入选前候选",
+        "previous_label": "入选前聚合结果",
+        "previous_hint": "去重后待排序候选",
         "current_key": "chosen_articles",
-        "current_label": "最终入选明细",
+        "current_label": "最终入选结果",
         "current_hint": "进入最终晨报草稿",
         "status_copy": "进入最终晨报草稿",
+        "removed_reason": "未进入最终排序结果",
     },
 ]
-DEFAULT_STAGE_PAIR_KEY = "deduped_articles"
+DEFAULT_STAGE_PAIR_KEY = "filtered_articles"
 PREVIEW_DESIGN_A_PATH = "/preview/design-a"
 PREVIEW_DESIGN_A_RUN_PATH = "/preview/design-a/run"
 
@@ -82,6 +102,39 @@ def _article_identity(article: dict[str, object]) -> str:
     return f"{title}::{source}"
 
 
+def _source_breakdown(items: list[dict[str, object]]) -> list[dict[str, object]]:
+    counts: dict[str, int] = {}
+    order: list[str] = []
+    for article in items:
+        source = str(article.get("source") or "未知来源").strip() or "未知来源"
+        if source not in counts:
+            counts[source] = 0
+            order.append(source)
+        counts[source] += 1
+    return [{"source": source, "count": counts[source]} for source in order]
+
+
+def _format_blocked_keywords(keywords: list[str] | tuple[str, ...] | None) -> str:
+    if not keywords:
+        return ""
+    return "，".join(keyword.strip() for keyword in keywords if keyword.strip())
+
+
+def _parse_blocked_keywords(raw_value: str | None) -> list[str]:
+    if raw_value is None:
+        return list(DEFAULT_BLOCKED_KEYWORDS)
+    parts = re.split(r"[\s,，、;；]+", raw_value)
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for part in parts:
+        keyword = part.strip()
+        if not keyword or keyword in seen:
+            continue
+        seen.add(keyword)
+        normalized.append(keyword)
+    return normalized
+
+
 def _build_stage_compare_payload(result: dict[str, object] | None) -> tuple[list[dict[str, object]], dict[str, object] | None]:
     if not result:
         return STAGE_PAIR_OPTIONS, None
@@ -93,17 +146,67 @@ def _build_stage_compare_payload(result: dict[str, object] | None) -> tuple[list
     stage_pairs: list[dict[str, object]] = []
     active_pair: dict[str, object] | None = None
     for option in STAGE_PAIR_OPTIONS:
-        previous_items = list(stages.get(option["previous_key"], []))
+        if option["previous_key"] is None:
+            previous_items = list(stages.get(option["current_key"], []))
+        else:
+            previous_items = list(stages.get(option["previous_key"], []))
         current_items = list(stages.get(option["current_key"], []))
-        current_keys = {_article_identity(article) for article in current_items}
-        passed_items = [article for article in previous_items if _article_identity(article) in current_keys]
+        previous_rank_map = {_article_identity(article): index + 1 for index, article in enumerate(previous_items)}
+        current_rank_map = {_article_identity(article): index + 1 for index, article in enumerate(current_items)}
+        current_keys = set(current_rank_map)
+        passed_items = [article for article in current_items if _article_identity(article) in previous_rank_map]
+        removed_items = [article for article in previous_items if _article_identity(article) not in current_keys]
+        rank_changes = []
+        for article in current_items:
+            identity = _article_identity(article)
+            if identity not in previous_rank_map:
+                continue
+            before_rank = previous_rank_map[identity]
+            after_rank = current_rank_map[identity]
+            rank_delta = before_rank - after_rank
+            direction = "不变"
+            if rank_delta > 0:
+                direction = "上升"
+            elif rank_delta < 0:
+                direction = "下降"
+            rank_changes.append(
+                {
+                    "title": article.get("title"),
+                    "source": article.get("source"),
+                    "url": article.get("url"),
+                    "before_rank": before_rank,
+                    "after_rank": after_rank,
+                    "rank_delta": rank_delta,
+                    "direction": direction,
+                }
+            )
+        after_items = []
+        for article in current_items:
+            identity = _article_identity(article)
+            before_rank = previous_rank_map.get(identity)
+            after_rank = current_rank_map.get(identity)
+            article_payload = dict(article)
+            article_payload["before_rank"] = before_rank
+            article_payload["after_rank"] = after_rank
+            article_payload["rank_delta"] = None if before_rank is None or after_rank is None else before_rank - after_rank
+            after_items.append(article_payload)
         pair_payload = {
             **option,
+            "before_items": previous_items,
+            "after_items": after_items,
+            "current_items": after_items,
             "previous_items": previous_items,
             "passed_items": passed_items,
+            "removed_items": removed_items,
+            "rank_changes": rank_changes,
             "previous_count": len(previous_items),
-            "passed_count": len(passed_items),
-            "removed_count": max(len(previous_items) - len(passed_items), 0),
+            "current_count": len(after_items),
+            "after_count": len(after_items),
+            "passed_count": len(after_items),
+            "removed_count": len(removed_items),
+            "rank_change_count": sum(1 for item in rank_changes if item["rank_delta"] != 0),
+            "before_breakdown": _source_breakdown(previous_items),
+            "after_breakdown": _source_breakdown(after_items),
         }
         stage_pairs.append(pair_payload)
         if option["key"] == DEFAULT_STAGE_PAIR_KEY:
@@ -112,12 +215,19 @@ def _build_stage_compare_payload(result: dict[str, object] | None) -> tuple[list
     return stage_pairs, active_pair
 
 
+def _build_state_store() -> StateStore:
+    config = AppConfig()
+    config.ensure_directories()
+    return StateStore(config.data_dir / "state.db", PROJECT_ROOT / "app/storage/schema.sql")
+
+
 def _render_dashboard_template(
     template_name: str,
     *,
     available_sources: list[dict[str, str]],
     selected_sources: list[str],
     selected_filter_strategy: str = "standard",
+    selected_blocked_keywords_text: str | None = None,
     selected_time_strategies: list[str] | None = None,
     selected_dedupe_strategy: str = "standard",
     result: dict[str, object] | None,
@@ -135,6 +245,11 @@ def _render_dashboard_template(
         available_time_strategies=TIME_STRATEGY_OPTIONS,
         selected_sources=selected_sources,
         selected_filter_strategy=selected_filter_strategy,
+        selected_blocked_keywords_text=(
+            _format_blocked_keywords(DEFAULT_BLOCKED_KEYWORDS)
+            if selected_blocked_keywords_text is None
+            else selected_blocked_keywords_text
+        ),
         selected_time_strategies=selected_time_strategies or ["source_day"],
         selected_dedupe_strategy=selected_dedupe_strategy,
         result=result,
@@ -152,6 +267,7 @@ def build_dashboard_html(
     available_sources: list[dict[str, str]],
     selected_sources: list[str],
     selected_filter_strategy: str = "standard",
+    selected_blocked_keywords_text: str | None = None,
     selected_time_strategies: list[str] | None = None,
     selected_dedupe_strategy: str = "standard",
     result: dict[str, object] | None,
@@ -162,6 +278,7 @@ def build_dashboard_html(
         available_sources=available_sources,
         selected_sources=selected_sources,
         selected_filter_strategy=selected_filter_strategy,
+        selected_blocked_keywords_text=selected_blocked_keywords_text,
         selected_time_strategies=selected_time_strategies,
         selected_dedupe_strategy=selected_dedupe_strategy,
         result=result,
@@ -174,6 +291,7 @@ def build_dashboard_preview_html(
     available_sources: list[dict[str, str]],
     selected_sources: list[str],
     selected_filter_strategy: str = "standard",
+    selected_blocked_keywords_text: str | None = None,
     selected_time_strategies: list[str] | None = None,
     selected_dedupe_strategy: str = "standard",
     result: dict[str, object] | None,
@@ -184,6 +302,7 @@ def build_dashboard_preview_html(
         available_sources=available_sources,
         selected_sources=selected_sources,
         selected_filter_strategy=selected_filter_strategy,
+        selected_blocked_keywords_text=selected_blocked_keywords_text,
         selected_time_strategies=selected_time_strategies,
         selected_dedupe_strategy=selected_dedupe_strategy,
         result=result,
@@ -226,6 +345,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
         preview: bool,
         selected_sources: list[str],
         selected_filter_strategy: str = "standard",
+        selected_blocked_keywords_text: str | None = None,
         selected_time_strategies: list[str] | None = None,
         selected_dedupe_strategy: str = "standard",
         result: dict[str, object] | None,
@@ -236,6 +356,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             available_sources=list_available_sources(),
             selected_sources=selected_sources,
             selected_filter_strategy=selected_filter_strategy,
+            selected_blocked_keywords_text=selected_blocked_keywords_text,
             selected_time_strategies=selected_time_strategies,
             selected_dedupe_strategy=selected_dedupe_strategy,
             result=result,
@@ -247,12 +368,17 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self._serve_artifact()
             return
         preview = self.path == PREVIEW_DESIGN_A_PATH
+        preferences = _build_state_store().get_dashboard_preferences() or {}
         html = self._render_page(
             preview=preview,
-            selected_sources=self.default_sources,
-            selected_filter_strategy="standard",
-            selected_time_strategies=["source_day"],
-            selected_dedupe_strategy="standard",
+            selected_sources=preferences.get("selected_sources", self.default_sources),
+            selected_filter_strategy=preferences.get("filter_strategy", "standard"),
+            selected_blocked_keywords_text=preferences.get(
+                "blocked_keywords_text",
+                _format_blocked_keywords(DEFAULT_BLOCKED_KEYWORDS),
+            ),
+            selected_time_strategies=preferences.get("time_strategies", ["source_day"]),
+            selected_dedupe_strategy=preferences.get("dedupe_strategy", "standard"),
             result=None,
             error_message="",
         )
@@ -261,18 +387,29 @@ class DashboardHandler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:  # noqa: N802
         content_length = int(self.headers.get("Content-Length", "0"))
         body = self.rfile.read(content_length).decode("utf-8")
-        form = parse_qs(body)
+        form = parse_qs(body, keep_blank_values=True)
         selected_sources = form.get("sources") or self.default_sources
         filter_strategy = (form.get("filter_strategy") or ["standard"])[0]
+        blocked_keywords_text = (form.get("blocked_keywords") or [None])[0]
+        blocked_keywords = _parse_blocked_keywords(blocked_keywords_text)
+        normalized_blocked_keywords_text = _format_blocked_keywords(blocked_keywords)
         time_strategies = form.get("time_strategy") or []
         dedupe_strategy = (form.get("dedupe_strategy") or ["standard"])[0]
         error_message = ""
         result: dict[str, object] | None = None
         preview = self.path == PREVIEW_DESIGN_A_RUN_PATH
+        _build_state_store().save_dashboard_preferences(
+            selected_sources=selected_sources,
+            filter_strategy=filter_strategy,
+            blocked_keywords_text=normalized_blocked_keywords_text,
+            time_strategies=time_strategies,
+            dedupe_strategy=dedupe_strategy,
+        )
         try:
             result = run_digest(
                 selected_sources=selected_sources,
                 filter_strategy=filter_strategy,
+                blocked_keywords=blocked_keywords,
                 time_strategies=time_strategies,
                 dedupe_strategy=dedupe_strategy,
             )
@@ -282,6 +419,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             preview=preview,
             selected_sources=selected_sources,
             selected_filter_strategy=filter_strategy,
+            selected_blocked_keywords_text=normalized_blocked_keywords_text,
             selected_time_strategies=time_strategies,
             selected_dedupe_strategy=dedupe_strategy,
             result=result,

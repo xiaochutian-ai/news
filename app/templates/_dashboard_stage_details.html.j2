@@ -4,111 +4,248 @@
       <div class="section-kicker">Stage Compare</div>
       <h2>生成详情</h2>
     </div>
-    <div class="hint">一次只展示当前选中的一组阶段对照。右栏只保留左栏条目中进入下一阶段的结果。</div>
+    <div class="hint">上半部分只负责选择阶段，下半部分固定展示该阶段的前后对比。左边看进入本阶段前的聚合结果，右边看经过该阶段后剩下的数据，并补充删除项与排序变化。</div>
   </div>
   {% if result %}
   <div class="stage-compare-shell" data-default-stage="{{ default_stage_pair_key }}">
-    <div class="stage-status-rail">
-      {% for pair in stage_compare_options %}
-      <button
-        type="button"
-        class="stage-status-button{% if pair.key == default_stage_pair_key %} is-active{% endif %}"
-        data-stage="{{ pair.key }}"
-        onclick="switchStageCompare(this.closest('.stage-compare-shell'), '{{ pair.key }}')"
-      >
-        <span class="stage-status-name">{{ pair.button_label }}</span>
-        <span class="stage-status-meta">数量：{{ pair.passed_count }} | {{ pair.button_meta }}</span>
-      </button>
-      {% endfor %}
-    </div>
+    <section class="stage-selector-panel">
+      <div class="stage-selector-head">
+        <h3>阶段选择</h3>
+        <div class="stage-panel-count">先选阶段，再看该阶段的前后差异和排序变化</div>
+      </div>
+      <div class="stage-status-rail">
+        {% for pair in stage_compare_options %}
+        <button
+          type="button"
+          class="stage-status-button{% if pair.key == default_stage_pair_key %} is-active{% endif %}"
+          data-stage="{{ pair.key }}"
+          onclick="switchStageCompare(this.closest('.stage-compare-shell'), '{{ pair.key }}')"
+        >
+          <span class="stage-status-name">{{ pair.button_label }}</span>
+          <span class="stage-status-meta">剩余 {{ pair.after_count }} · 删除 {{ pair.removed_count }}</span>
+        </button>
+        {% endfor %}
+      </div>
+    </section>
     <div class="stage-compare-track">
       {% if active_stage_compare %}
-      <div class="stage-compare-pair" data-stage-pair="{{ active_stage_compare.key }}">
-        <section class="stage-compare-panel" data-role="previous">
-          <div class="stage-panel-head">
+      <div class="stage-compare-view" data-stage-view="{{ active_stage_compare.key }}">
+        <section class="stage-summary-panel">
+          <div class="stage-workspace-head">
             <div>
-              <h3>{{ active_stage_compare.previous_label }}</h3>
-              <div class="stage-panel-count">{{ active_stage_compare.previous_hint }}</div>
+              <div class="stage-overview-label">阶段摘要</div>
+              <div class="stage-summary-title">{{ active_stage_compare.button_label }}</div>
             </div>
-            <div class="stage-panel-count">总条数：{{ active_stage_compare.previous_count }}</div>
+            <div class="stage-workspace-copy">{{ active_stage_compare.button_meta }}</div>
           </div>
-          {% if active_stage_compare.previous_items %}
-          <div class="article-stack">
-            {% for article in active_stage_compare.previous_items %}
-            <article class="article-item">
-              <a href="{{ article.url }}" target="_blank" rel="noopener noreferrer">{{ article.title }}</a>
-              <div class="article-meta">
-                来源：{{ article.source }}
-                {% if article.published_at %} | 时间：{{ article.published_at }}{% endif %}
-                {% if article.score is not none %} | 分数：{{ "%.2f"|format(article.score) }}{% endif %}
-              </div>
-              {% if article.tags %}
-              <div class="tag-list">
-                {% for tag in article.tags %}
-                <span class="tag">{{ tag }}</span>
-                {% endfor %}
-              </div>
-              {% endif %}
-              {% if article.summary %}
-              <details class="article-summary-toggle">
-                <summary>展开摘要</summary>
-                <div class="article-summary-body">{{ article.summary }}</div>
-              </details>
-              {% endif %}
+          <div class="stage-summary-strip">
+            <article class="stage-summary-chip">
+              <div class="stage-overview-label">前后数量</div>
+              <div class="stage-summary-metric">{{ active_stage_compare.previous_count }} -> {{ active_stage_compare.after_count }}</div>
             </article>
-            {% endfor %}
+            <article class="stage-summary-chip">
+              <div class="stage-overview-label">删除条目</div>
+              <div class="stage-summary-metric">{{ active_stage_compare.removed_count }}</div>
+            </article>
+            <article class="stage-summary-chip">
+              <div class="stage-overview-label">排序变化</div>
+              <div class="stage-summary-metric">{{ active_stage_compare.rank_change_count }}</div>
+            </article>
+            <article class="stage-summary-chip">
+              <div class="stage-overview-label">阅读方式</div>
+              <div class="stage-summary-copy">先看主视区，再按需展开次级差异</div>
+            </article>
           </div>
-          {% else %}
-          <div class="empty">当前阶段的前一阶段暂无数据。</div>
-          {% endif %}
         </section>
-        <section class="stage-compare-panel" data-role="current">
-          <div class="stage-panel-head">
-            <div>
-              <h3>{{ active_stage_compare.current_label }}</h3>
-              <div class="stage-panel-count">{{ active_stage_compare.current_hint }}</div>
+        <section class="stage-primary-workspace">
+          <div class="stage-workspace-head">
+            <div class="stage-overview-label">主视区</div>
+            <div class="stage-workspace-copy">左边看进入本阶段前的聚合结果，右边看经过当前阶段后保留下来的结果</div>
+          </div>
+        <div class="stage-compare-pair is-asymmetric">
+          <section class="stage-compare-panel is-before" data-role="before">
+            <div class="stage-panel-head">
+              <div>
+                <h3>阶段前聚合结果</h3>
+                <div class="stage-panel-count">{{ active_stage_compare.previous_label }} · {{ active_stage_compare.previous_hint }}</div>
+              </div>
+              <div class="stage-panel-count">总条数：{{ active_stage_compare.previous_count }}</div>
             </div>
-            <div class="stage-panel-count">当前阶段通过数：{{ active_stage_compare.passed_count }}</div>
-            <div class="stage-panel-count">当前阶段淘汰数：{{ active_stage_compare.removed_count }}</div>
+            {% if active_stage_compare.before_breakdown %}
+            <div class="source-breakdown-row is-before-breakdown">
+              {% for item in active_stage_compare.before_breakdown %}
+              <span class="source-breakdown-chip">{{ item.source }} {{ item.count }}</span>
+              {% endfor %}
+            </div>
+            {% endif %}
+            {% if active_stage_compare.before_items %}
+            <div class="article-stack is-dense">
+              {% for article in active_stage_compare.before_items %}
+              <article class="article-item is-before-item">
+                <a href="{{ article.url }}" target="_blank" rel="noopener noreferrer">{{ article.title }}</a>
+                <div class="article-meta">
+                  来源：{{ article.source }}
+                  {% if article.published_at %} | 时间：{{ article.published_at }}{% endif %}
+                  {% if article.score is not none %} | 分数：{{ "%.2f"|format(article.score) }}{% endif %}
+                </div>
+                <div class="article-meta">阶段前位次：{{ loop.index }}</div>
+                {% if article.tags %}
+                <div class="tag-list">
+                  {% for tag in article.tags %}
+                  <span class="tag">{{ tag }}</span>
+                  {% endfor %}
+                </div>
+                {% endif %}
+                {% if article.summary %}
+                <details class="article-summary-toggle">
+                  <summary>展开摘要</summary>
+                  <div class="article-summary-body">{{ article.summary }}</div>
+                </details>
+                {% endif %}
+              </article>
+              {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty">当前阶段之前暂无聚合数据。</div>
+            {% endif %}
+          </section>
+          <section class="stage-compare-panel is-after" data-role="after">
+            <div class="stage-panel-head">
+              <div>
+                <h3>阶段后保留结果</h3>
+                <div class="stage-panel-count">{{ active_stage_compare.current_label }} · {{ active_stage_compare.current_hint }}</div>
+              </div>
+              <div class="stage-panel-count">保留条数：{{ active_stage_compare.after_count }}</div>
+            </div>
+            {% if active_stage_compare.after_breakdown %}
+            <div class="source-breakdown-row is-after-breakdown">
+              {% for item in active_stage_compare.after_breakdown %}
+              <span class="source-breakdown-chip">{{ item.source }} {{ item.count }}</span>
+              {% endfor %}
+            </div>
+            {% endif %}
+            {% if active_stage_compare.after_items %}
+            <div class="article-stack is-focus">
+              {% for article in active_stage_compare.after_items %}
+              <article class="article-item is-after-item">
+                <a href="{{ article.url }}" target="_blank" rel="noopener noreferrer">{{ article.title }}</a>
+                <div class="article-meta">
+                  来源：{{ article.source }}
+                  {% if article.published_at %} | 时间：{{ article.published_at }}{% endif %}
+                  {% if article.score is not none %} | 分数：{{ "%.2f"|format(article.score) }}{% endif %}
+                </div>
+                <div class="article-meta">保留原因：{{ active_stage_compare.status_copy }}</div>
+                {% if article.before_rank is not none and article.after_rank is not none %}
+                <div class="article-meta">排序变化：{{ article.before_rank }} -> {{ article.after_rank }}</div>
+                {% endif %}
+                {% if article.tags %}
+                <div class="tag-list">
+                  {% for tag in article.tags %}
+                  <span class="tag">{{ tag }}</span>
+                  {% endfor %}
+                </div>
+                {% endif %}
+                {% if article.summary %}
+                <details class="article-summary-toggle">
+                  <summary>展开摘要</summary>
+                  <div class="article-summary-body">{{ article.summary }}</div>
+                </details>
+                {% endif %}
+              </article>
+              {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty">当前阶段之后没有保留下来的数据。</div>
+            {% endif %}
+          </section>
+        </div>
+        </section>
+        <section class="stage-secondary-panel">
+          <div class="stage-workspace-head">
+            <div class="stage-overview-label">次级差异</div>
+            <div class="stage-workspace-copy">这里放删除条目和排序变化，默认折叠，避免主画面过载</div>
           </div>
-          {% if active_stage_compare.passed_items %}
-          <div class="article-stack">
-            {% for article in active_stage_compare.passed_items %}
-            <article class="article-item">
-              <a href="{{ article.url }}" target="_blank" rel="noopener noreferrer">{{ article.title }}</a>
-              <div class="article-meta">
-                来源：{{ article.source }}
-                {% if article.published_at %} | 时间：{{ article.published_at }}{% endif %}
-                {% if article.score is not none %} | 分数：{{ "%.2f"|format(article.score) }}{% endif %}
+          <div class="stage-secondary-row">
+            <details class="stage-secondary-details">
+              <summary>
+                <span>删除条目（可展开）</span>
+                <span class="stage-panel-count">共 {{ active_stage_compare.removed_count }} 条</span>
+              </summary>
+              <div class="stage-diff-card">
+                <div class="stage-panel-head">
+                  <div>
+                    <h3>删除条目</h3>
+                    <div class="stage-panel-count">本阶段被删掉的文章，以及统一的阶段原因</div>
+                  </div>
+                  <div class="stage-panel-count">共 {{ active_stage_compare.removed_count }} 条</div>
+                </div>
+                {% if active_stage_compare.removed_items %}
+                <div class="article-stack">
+                  {% for article in active_stage_compare.removed_items %}
+                  <article class="article-item is-removed">
+                    <a href="{{ article.url }}" target="_blank" rel="noopener noreferrer">{{ article.title }}</a>
+                    <div class="article-meta">
+                      来源：{{ article.source }}
+                      {% if article.published_at %} | 时间：{{ article.published_at }}{% endif %}
+                      {% if article.score is not none %} | 分数：{{ "%.2f"|format(article.score) }}{% endif %}
+                    </div>
+                    <div class="article-meta">删除原因：{{ active_stage_compare.removed_reason }}</div>
+                    {% if article.tags %}
+                    <div class="tag-list">
+                      {% for tag in article.tags %}
+                      <span class="tag">{{ tag }}</span>
+                      {% endfor %}
+                    </div>
+                    {% endif %}
+                    {% if article.summary %}
+                    <details class="article-summary-toggle">
+                      <summary>展开摘要</summary>
+                      <div class="article-summary-body">{{ article.summary }}</div>
+                    </details>
+                    {% endif %}
+                  </article>
+                  {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty">当前阶段没有删掉任何文章。</div>
+                {% endif %}
               </div>
-              <div class="article-meta">
-                保留原因：{{ active_stage_compare.status_copy }}
+            </details>
+            <details class="stage-secondary-details">
+              <summary>
+                <span>排序变化（可展开）</span>
+                <span class="stage-panel-count">变化 {{ active_stage_compare.rank_change_count }} 条</span>
+              </summary>
+              <div class="stage-diff-card">
+                <div class="stage-panel-head">
+                  <div>
+                    <h3>排序变化</h3>
+                    <div class="stage-panel-count">保留下来的文章在本阶段前后位次如何变化</div>
+                  </div>
+                  <div class="stage-panel-count">变化 {{ active_stage_compare.rank_change_count }} 条</div>
+                </div>
+                {% if active_stage_compare.rank_changes %}
+                <div class="rank-change-list">
+                  {% for item in active_stage_compare.rank_changes %}
+                  <article class="rank-change-item{% if item.rank_delta == 0 %} is-neutral{% endif %}">
+                    <div class="rank-change-title">{{ item.title }}</div>
+                    <div class="article-meta">来源：{{ item.source }}</div>
+                    <div class="rank-change-meta">位次：{{ item.before_rank }} -> {{ item.after_rank }} | {{ item.direction }}</div>
+                  </article>
+                  {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty">当前阶段没有可比较的排序变化。</div>
+                {% endif %}
               </div>
-              {% if article.tags %}
-              <div class="tag-list">
-                {% for tag in article.tags %}
-                <span class="tag">{{ tag }}</span>
-                {% endfor %}
-              </div>
-              {% endif %}
-              {% if article.summary %}
-              <details class="article-summary-toggle">
-                <summary>展开摘要</summary>
-                <div class="article-summary-body">{{ article.summary }}</div>
-              </details>
-              {% endif %}
-            </article>
-            {% endfor %}
+            </details>
           </div>
-          {% else %}
-          <div class="empty">当前组中没有条目进入下一阶段。</div>
-          {% endif %}
         </section>
       </div>
       {% endif %}
     </div>
+    <script type="application/json" class="stage-compare-data">{{ stage_compare_json | safe }}</script>
   </div>
-  <script type="application/json" class="stage-compare-data">{{ stage_compare_json | safe }}</script>
   {% else %}
   <div class="empty">还没有执行记录。执行一次晨报生成后，这里会默认展示过滤后与去重后的阶段对照。</div>
   {% endif %}
@@ -123,7 +260,12 @@ function escapeStageHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
-function renderStageArticle(article, statusCopy) {
+function renderSourceBreakdown(items) {
+  if (!items.length) return "";
+  return `<div class="source-breakdown-row">${items.map((item) => `<span class="source-breakdown-chip">${escapeStageHtml(item.source)} ${item.count}</span>`).join("")}</div>`;
+}
+
+function renderStageArticle(article, extraMeta = [], itemClass = "") {
   const tags = (article.tags || [])
     .map((tag) => `<span class="tag">${escapeStageHtml(tag)}</span>`)
     .join("");
@@ -133,61 +275,167 @@ function renderStageArticle(article, statusCopy) {
   const metaParts = [`来源：${escapeStageHtml(article.source || "")}`];
   if (article.published_at) metaParts.push(`时间：${escapeStageHtml(article.published_at)}`);
   if (article.score !== null && article.score !== undefined) metaParts.push(`分数：${Number(article.score).toFixed(2)}`);
-  const status = statusCopy ? `<div class="article-meta">保留原因：${escapeStageHtml(statusCopy)}</div>` : "";
+  const extra = extraMeta
+    .filter(Boolean)
+    .map((item) => `<div class="article-meta">${escapeStageHtml(item)}</div>`)
+    .join("");
   return `
-    <article class="article-item">
+    <article class="article-item${itemClass ? ` ${itemClass}` : ""}">
       <a href="${escapeStageHtml(article.url || "#")}" target="_blank" rel="noopener noreferrer">${escapeStageHtml(article.title || "")}</a>
       <div class="article-meta">${metaParts.join(" | ")}</div>
-      ${status}
+      ${extra}
       ${tags ? `<div class="tag-list">${tags}</div>` : ""}
       ${summary}
     </article>
   `;
 }
 
+function renderArticleStack(items, emptyCopy, metaBuilder, stackClass = "", itemClass = "") {
+  return `
+    ${items.length
+      ? `<div class="article-stack${stackClass ? ` ${stackClass}` : ""}">${items.map((article, index) => renderStageArticle(article, metaBuilder(article, index), itemClass)).join("")}</div>`
+      : `<div class="empty">${escapeStageHtml(emptyCopy)}</div>`}
+  `;
+}
+
+function renderRankChangeList(items) {
+  if (!items.length) {
+    return `<div class="empty">当前阶段没有可比较的排序变化。</div>`;
+  }
+  return `
+    <div class="rank-change-list">
+      ${items.map((item) => `
+        <article class="rank-change-item${item.rank_delta === 0 ? " is-neutral" : ""}">
+          <div class="rank-change-title">${escapeStageHtml(item.title || "")}</div>
+          <div class="article-meta">来源：${escapeStageHtml(item.source || "")}</div>
+          <div class="rank-change-meta">位次：${item.before_rank} -> ${item.after_rank} | ${escapeStageHtml(item.direction || "")}</div>
+        </article>
+      `).join("")}
+    </div>
+  `;
+}
+
 function switchStageCompare(container, stageKey) {
   const buttons = container.querySelectorAll("[data-stage]");
   const dataEl = container.querySelector(".stage-compare-data");
-  const pairEl = container.querySelector("[data-stage-pair]");
-  if (!dataEl || !pairEl) return;
+  const viewEl = container.querySelector("[data-stage-view]");
+  if (!dataEl || !viewEl) return;
   const stagePairs = JSON.parse(dataEl.textContent || "[]");
   const pair = stagePairs.find((item) => item.key === stageKey);
   if (!pair) return;
   buttons.forEach((button) => {
     button.classList.toggle("is-active", button.dataset.stage === stageKey);
   });
-  pairEl.dataset.stagePair = stageKey;
-  pairEl.innerHTML = `
-    <section class="stage-compare-panel" data-role="previous">
-      <div class="stage-panel-head">
+  viewEl.dataset.stageView = stageKey;
+  viewEl.innerHTML = `
+    <section class="stage-summary-panel">
+      <div class="stage-workspace-head">
         <div>
-          <h3>${escapeStageHtml(pair.previous_label)}</h3>
-          <div class="stage-panel-count">${escapeStageHtml(pair.previous_hint)}</div>
+          <div class="stage-overview-label">阶段摘要</div>
+          <div class="stage-summary-title">${escapeStageHtml(pair.button_label)}</div>
         </div>
-        <div class="stage-panel-count">总条数：${pair.previous_count}</div>
+        <div class="stage-workspace-copy">${escapeStageHtml(pair.button_meta)}</div>
       </div>
-      ${pair.previous_items.length
-        ? `<div class="article-stack">${pair.previous_items.map((article) => renderStageArticle(article, "")).join("")}</div>`
-        : `<div class="empty">当前阶段的前一阶段暂无数据。</div>`}
+      <div class="stage-summary-strip">
+        <article class="stage-summary-chip">
+          <div class="stage-overview-label">前后数量</div>
+          <div class="stage-summary-metric">${pair.previous_count} -> ${pair.after_count}</div>
+        </article>
+        <article class="stage-summary-chip">
+          <div class="stage-overview-label">删除条目</div>
+          <div class="stage-summary-metric">${pair.removed_count}</div>
+        </article>
+        <article class="stage-summary-chip">
+          <div class="stage-overview-label">排序变化</div>
+          <div class="stage-summary-metric">${pair.rank_change_count}</div>
+        </article>
+        <article class="stage-summary-chip">
+          <div class="stage-overview-label">阅读方式</div>
+          <div class="stage-summary-copy">先看主视区，再按需展开次级差异</div>
+        </article>
+      </div>
     </section>
-    <section class="stage-compare-panel" data-role="current">
-      <div class="stage-panel-head">
-        <div>
-          <h3>${escapeStageHtml(pair.current_label)}</h3>
-          <div class="stage-panel-count">${escapeStageHtml(pair.current_hint)}</div>
-        </div>
-        <div class="stage-panel-count">当前阶段通过数：${pair.passed_count}</div>
-        <div class="stage-panel-count">当前阶段淘汰数：${pair.removed_count}</div>
+    <section class="stage-primary-workspace">
+      <div class="stage-workspace-head">
+        <div class="stage-overview-label">主视区</div>
+        <div class="stage-workspace-copy">左边看进入本阶段前的聚合结果，右边看经过当前阶段后保留下来的结果</div>
       </div>
-      ${pair.passed_items.length
-        ? `<div class="article-stack">${pair.passed_items.map((article) => renderStageArticle(article, pair.status_copy)).join("")}</div>`
-        : `<div class="empty">当前组中没有条目进入下一阶段。</div>`}
+      <div class="stage-compare-pair is-asymmetric">
+        <section class="stage-compare-panel is-before" data-role="before">
+          <div class="stage-panel-head">
+            <div>
+              <h3>阶段前聚合结果</h3>
+              <div class="stage-panel-count">${escapeStageHtml(pair.previous_label)} · ${escapeStageHtml(pair.previous_hint)}</div>
+            </div>
+            <div class="stage-panel-count">总条数：${pair.previous_count}</div>
+          </div>
+          ${pair.before_breakdown?.length ? `<div class="source-breakdown-row is-before-breakdown">${(pair.before_breakdown || []).map((item) => `<span class="source-breakdown-chip">${escapeStageHtml(item.source)} ${item.count}</span>`).join("")}</div>` : ""}
+          ${renderArticleStack(pair.before_items || [], "当前阶段之前暂无聚合数据。", (_, index) => [`阶段前位次：${index + 1}`], "is-dense", "is-before-item")}
+        </section>
+        <section class="stage-compare-panel is-after" data-role="after">
+          <div class="stage-panel-head">
+            <div>
+              <h3>阶段后保留结果</h3>
+              <div class="stage-panel-count">${escapeStageHtml(pair.current_label)} · ${escapeStageHtml(pair.current_hint)}</div>
+            </div>
+            <div class="stage-panel-count">保留条数：${pair.after_count}</div>
+          </div>
+          ${pair.after_breakdown?.length ? `<div class="source-breakdown-row is-after-breakdown">${(pair.after_breakdown || []).map((item) => `<span class="source-breakdown-chip">${escapeStageHtml(item.source)} ${item.count}</span>`).join("")}</div>` : ""}
+          ${renderArticleStack(pair.after_items || [], "当前阶段之后没有保留下来的数据。", (article) => {
+            const meta = [`保留原因：${pair.status_copy}`];
+            if (article.before_rank !== null && article.before_rank !== undefined && article.after_rank !== null && article.after_rank !== undefined) {
+              meta.push(`排序变化：${article.before_rank} -> ${article.after_rank}`);
+            }
+            return meta;
+          }, "is-focus", "is-after-item")}
+        </section>
+      </div>
+    </section>
+    <section class="stage-secondary-panel">
+      <div class="stage-workspace-head">
+        <div class="stage-overview-label">次级差异</div>
+        <div class="stage-workspace-copy">这里放删除条目和排序变化，默认折叠，避免主画面过载</div>
+      </div>
+      <div class="stage-secondary-row">
+        <details class="stage-secondary-details">
+          <summary>
+            <span>删除条目（可展开）</span>
+            <span class="stage-panel-count">共 ${pair.removed_count} 条</span>
+          </summary>
+          <div class="stage-diff-card">
+            <div class="stage-panel-head">
+              <div>
+                <h3>删除条目</h3>
+                <div class="stage-panel-count">本阶段被删掉的文章，以及统一的阶段原因</div>
+              </div>
+              <div class="stage-panel-count">共 ${pair.removed_count} 条</div>
+            </div>
+            ${renderArticleStack(pair.removed_items || [], "当前阶段没有删掉任何文章。", () => [`删除原因：${pair.removed_reason}`])}
+          </div>
+        </details>
+        <details class="stage-secondary-details">
+          <summary>
+            <span>排序变化（可展开）</span>
+            <span class="stage-panel-count">变化 ${pair.rank_change_count} 条</span>
+          </summary>
+          <div class="stage-diff-card">
+            <div class="stage-panel-head">
+              <div>
+                <h3>排序变化</h3>
+                <div class="stage-panel-count">保留下来的文章在本阶段前后位次如何变化</div>
+              </div>
+              <div class="stage-panel-count">变化 ${pair.rank_change_count} 条</div>
+            </div>
+            ${renderRankChangeList(pair.rank_changes || [])}
+          </div>
+        </details>
+      </div>
     </section>
   `;
 }
 
 document.querySelectorAll(".stage-compare-shell").forEach((container) => {
-  const defaultStage = container.dataset.defaultStage || "deduped_articles";
+  const defaultStage = container.dataset.defaultStage || "filtered_articles";
   switchStageCompare(container, defaultStage);
 });
 </script>

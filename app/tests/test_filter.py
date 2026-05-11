@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from app.models import NormalizedArticle
-from app.pipeline.filter import filter_minsheng_articles
+from app.pipeline.filter import filter_articles, filter_minsheng_articles
 from app.pipeline.time_filter import filter_articles_by_time
 
 
@@ -44,6 +44,26 @@ def test_filter_keeps_articles_with_public_service_tag() -> None:
     filtered = filter_minsheng_articles([article])
 
     assert len(filtered) == 1
+
+
+def test_filter_blocks_articles_matching_blacklist_keywords() -> None:
+    articles = [
+        _article("多地优化医保报销政策", "国家医保局发布新举措，减轻群众就医负担。"),
+        _article("总书记调研民生工作", "围绕医保和公共服务发表讲话。"),
+    ]
+
+    filtered = filter_articles(articles, strategy="standard")
+
+    assert [item.title for item in filtered] == ["多地优化医保报销政策"]
+
+
+def test_filter_blacklist_overrides_positive_tags() -> None:
+    article = _article("习主席谈养老服务体系建设", "涉及养老与公共服务。")
+    article.tags = ["民生", "公共服务"]
+
+    filtered = filter_articles([article], strategy="loose")
+
+    assert filtered == []
 
 
 def test_time_filter_skips_filtering_when_no_strategy_selected() -> None:

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable
+
 from app.models import NormalizedArticle
 from app.pipeline.time_filter import filter_articles_by_time
 
@@ -48,76 +50,126 @@ NEGATIVE_KEYWORDS = {
     "党建",
 }
 
+DEFAULT_BLOCKED_KEYWORDS = (
+    "习近平",
+    "李强",
+    "习主席",
+    "总书记",
+)
+
+ArticlePredicate = Callable[[NormalizedArticle], bool]
+
 
 def _combined_text(article: NormalizedArticle) -> str:
     return f"{article.title} {article.summary} {article.content}"
 
 
-def _positive_keyword_hits(article: NormalizedArticle) -> int:
+def normalize_keywords(
+    keywords: Iterable[str] | None,
+    *,
+    default: Iterable[str] = (),
+) -> tuple[str, ...]:
+    source = keywords if keywords is not None else default
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for keyword in source:
+        normalized_keyword = keyword.strip()
+        if not normalized_keyword or normalized_keyword in seen:
+            continue
+        seen.add(normalized_keyword)
+        normalized.append(normalized_keyword)
+    return tuple(normalized)
+
+
+def _keyword_hits(article: NormalizedArticle, keywords: Iterable[str]) -> int:
     combined = _combined_text(article)
-    return sum(1 for keyword in POSITIVE_KEYWORDS if keyword in combined)
+    return sum(1 for keyword in keywords if keyword in combined)
+
+
+def _positive_keyword_hits(article: NormalizedArticle) -> int:
+    return _keyword_hits(article, POSITIVE_KEYWORDS)
 
 
 def _negative_keyword_hits(article: NormalizedArticle) -> int:
-    combined = _combined_text(article)
-    return sum(1 for keyword in NEGATIVE_KEYWORDS if keyword in combined)
+    return _keyword_hits(article, NEGATIVE_KEYWORDS)
 
 
-def _filter_loose_articles(articles: list[NormalizedArticle]) -> list[NormalizedArticle]:
+def _has_positive_tag(article: NormalizedArticle) -> bool:
+    return any(tag in POSITIVE_TAGS for tag in article.tags)
+
+
+def _matches_loose_strategy(article: NormalizedArticle) -> bool:
+    return _has_positive_tag(article) or _positive_keyword_hits(article) > 0
+
+
+def _matches_standard_strategy(article: NormalizedArticle) -> bool:
+    if _has_positive_tag(article):
+        return True
+    if _positive_keyword_hits(article) > 0:
+        return True
+    if _negative_keyword_hits(article) > 0:
+        return False
+    return False
+
+
+def _matches_strict_strategy(article: NormalizedArticle) -> bool:
+    if _negative_keyword_hits(article) > 0:
+        return False
+    if _has_positive_tag(article):
+        return True
+    return _positive_keyword_hits(article) >= 2
+
+
+def _build_blacklist_predicate(blocked_keywords: Iterable[str] | None) -> ArticlePredicate | None:
+    normalized_keywords = normalize_keywords(
+        blocked_keywords,
+        default=DEFAULT_BLOCKED_KEYWORDS,
+    )
+    if not normalized_keywords:
+        return None
+
+    def _predicate(article: NormalizedArticle) -> bool:
+        return _keyword_hits(article, normalized_keywords) == 0
+
+    return _predicate
+
+
+def _apply_predicates(
+    articles: list[NormalizedArticle],
+    predicates: Iterable[ArticlePredicate],
+) -> list[NormalizedArticle]:
     filtered: list[NormalizedArticle] = []
     for article in articles:
-        if any(tag in POSITIVE_TAGS for tag in article.tags):
-            filtered.append(article)
-            continue
-        if _positive_keyword_hits(article) > 0:
+        if all(predicate(article) for predicate in predicates):
             filtered.append(article)
     return filtered
 
 
-def _filter_standard_articles(articles: list[NormalizedArticle]) -> list[NormalizedArticle]:
-    filtered: list[NormalizedArticle] = []
-    for article in articles:
-        if any(tag in POSITIVE_TAGS for tag in article.tags):
-            filtered.append(article)
-            continue
-        if _positive_keyword_hits(article) > 0:
-            filtered.append(article)
-            continue
-        if _negative_keyword_hits(article) > 0:
-            continue
-    return filtered
-
-
-def _filter_strict_articles(articles: list[NormalizedArticle]) -> list[NormalizedArticle]:
-    filtered: list[NormalizedArticle] = []
-    for article in articles:
-        if _negative_keyword_hits(article) > 0:
-            continue
-        if any(tag in POSITIVE_TAGS for tag in article.tags):
-            filtered.append(article)
-            continue
-        if _positive_keyword_hits(article) >= 2:
-            filtered.append(article)
-    return filtered
+def _build_strategy_predicate(strategy: str) -> ArticlePredicate:
+    if strategy == "loose":
+        return _matches_loose_strategy
+    if strategy == "strict":
+        return _matches_strict_strategy
+    return _matches_standard_strategy
 
 
 def filter_articles(
     articles: list[NormalizedArticle],
     strategy: str = "standard",
     *,
+    blocked_keywords: Iterable[str] | None = None,
     time_strategies: list[str] | None = None,
     source_date: str | None = None,
     digest_date: str | None = None,
     window_start: str = "19:30",
     window_end: str = "22:30",
 ) -> list[NormalizedArticle]:
-    filtered: list[NormalizedArticle]
-    if strategy == "loose":
-        filtered = _filter_loose_articles(articles)
-    elif strategy == "strict":
-        filtered = _filter_strict_articles(articles)
-    else:
-        filtered = _filter_standard_articles(articles)
+    predicates: list[ArticlePredicate] = [_build_strategy_predicate(strategy)]
+    blacklist_predicate = _build_blacklist_predicate(blocked_keywords)
+    if blacklist_predicate is not None:
+        predicates.append(blacklist_predicate)
+
+    filtered = _apply_predicates(articles, predicates)
 
     if source_date is None or digest_date is None:
         return filtered
