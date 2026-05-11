@@ -55,7 +55,7 @@ def parse_xinhua_rss(xml_text: str, *, source: str) -> list[RawArticle]:
     return items
 
 
-def parse_xinhua_channel_page(html: str, *, source_day_compact: str) -> list[tuple[str, str]]:
+def parse_xinhua_channel_page(html: str, *, source_day_compact: str | None = None) -> list[tuple[str, str]]:
     soup = BeautifulSoup(html, "html.parser")
     matches: list[tuple[str, str]] = []
     seen: set[str] = set()
@@ -65,10 +65,11 @@ def parse_xinhua_channel_page(html: str, *, source_day_compact: str) -> list[tup
         if not title or href in seen:
             continue
         matched = XINHUA_LINK_PATTERN.match(href)
-        if not matched or matched.group(2) != source_day_compact:
+        if not matched:
             continue
         seen.add(href)
         matches.append((title, href))
+    matches.sort(key=lambda item: _parse_published_at(item[1], "") or datetime.min, reverse=True)
     return matches
 
 
@@ -86,7 +87,7 @@ class XinhuaAdapter(BaseSourceAdapter):
                 html = self.get_text(channel_url)
             except Exception:
                 continue
-            for title, link in parse_xinhua_channel_page(html, source_day_compact=source_day_compact):
+            for title, link in parse_xinhua_channel_page(html):
                 if link in seen:
                     continue
                 seen.add(link)
@@ -115,4 +116,5 @@ class XinhuaAdapter(BaseSourceAdapter):
                         metadata={"channel": channel_url},
                     )
                 )
+        results.sort(key=lambda article: article.published_at or datetime.min, reverse=True)
         return results

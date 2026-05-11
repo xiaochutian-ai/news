@@ -17,6 +17,14 @@ CCTV_LINK_PATTERN = re.compile(r"https://news\.cctv\.com/(\d{4})/(\d{2})/(\d{2})
 JSONP_WRAPPER_PATTERN = re.compile(r"^[^(]+\((.*)\)\s*$", re.DOTALL)
 
 
+def _parse_cctv_link_datetime(url: str) -> datetime | None:
+    matched = CCTV_LINK_PATTERN.match(url)
+    if not matched:
+        return None
+    year, month, day = (int(part) for part in matched.groups())
+    return datetime(year, month, day, 21, 30, 0)
+
+
 def parse_cctv_rss(xml_text: str) -> list[RawArticle]:
     root = ET.fromstring(xml_text)
     items: list[RawArticle] = []
@@ -41,9 +49,8 @@ def parse_cctv_rss(xml_text: str) -> list[RawArticle]:
     return items
 
 
-def parse_cctv_channel_page(html: str, *, source_day_compact: str) -> list[tuple[str, str]]:
+def parse_cctv_channel_page(html: str, *, source_day_compact: str | None = None) -> list[tuple[str, str]]:
     soup = BeautifulSoup(html, "html.parser")
-    target_date = f"{source_day_compact[:4]}/{source_day_compact[4:6]}/{source_day_compact[6:]}"
     matches: list[tuple[str, str]] = []
     seen: set[str] = set()
     for link in soup.find_all("a", href=True):
@@ -51,21 +58,21 @@ def parse_cctv_channel_page(html: str, *, source_day_compact: str) -> list[tuple
         href = link["href"].strip()
         if not title or href in seen:
             continue
-        if not href.startswith("https://news.cctv.com/") or target_date not in href:
+        if not href.startswith("https://news.cctv.com/"):
             continue
         if not CCTV_LINK_PATTERN.match(href):
             continue
         seen.add(href)
         matches.append((title, href))
+    matches.sort(key=lambda item: _parse_cctv_link_datetime(item[1]) or datetime.min, reverse=True)
     return matches
 
 
-def parse_cctv_feed(feed_text: str, *, source_day_compact: str) -> list[tuple[str, str]]:
+def parse_cctv_feed(feed_text: str, *, source_day_compact: str | None = None) -> list[tuple[str, str]]:
     matched = JSONP_WRAPPER_PATTERN.match(feed_text.strip())
     if not matched:
         return []
     payload = json.loads(matched.group(1))
-    target_date = f"{source_day_compact[:4]}/{source_day_compact[4:6]}/{source_day_compact[6:]}"
     matches: list[tuple[str, str]] = []
     seen: set[str] = set()
     for item in payload.get("data", {}).get("list", []):
@@ -73,10 +80,11 @@ def parse_cctv_feed(feed_text: str, *, source_day_compact: str) -> list[tuple[st
         url = str(item.get("url", "")).strip()
         if not title or not url or url in seen:
             continue
-        if target_date not in url or not CCTV_LINK_PATTERN.match(url):
+        if not CCTV_LINK_PATTERN.match(url):
             continue
         seen.add(url)
         matches.append((title, url))
+    matches.sort(key=lambda item: _parse_cctv_link_datetime(item[1]) or datetime.min, reverse=True)
     return matches
 
 
@@ -94,7 +102,7 @@ class CCTVAdapter(BaseSourceAdapter):
                 feed_text = self.get_text(feed_url, encoding="utf-8")
             except Exception:
                 continue
-            for title, absolute in parse_cctv_feed(feed_text, source_day_compact=source_day_compact):
+            for title, absolute in parse_cctv_feed(feed_text):
                 absolute = urljoin(feed_url, absolute)
                 if absolute in seen:
                     continue
@@ -118,11 +126,10 @@ class CCTVAdapter(BaseSourceAdapter):
                         source_id=absolute.rsplit("/", 1)[-1],
                         title=title,
                         url=absolute,
-                        published_at=datetime.fromisoformat(
-                            f"{source_day_compact[:4]}-{source_day_compact[4:6]}-{source_day_compact[6:]}T21:30:00"
-                        ),
+                        published_at=_parse_cctv_link_datetime(absolute),
                         summary=summary,
                         content=content,
                     )
                 )
+        results.sort(key=lambda article: article.published_at or datetime.min, reverse=True)
         return results

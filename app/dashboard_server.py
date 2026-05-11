@@ -8,6 +8,7 @@ from urllib.parse import parse_qs, unquote
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from app.main import run_digest
+from app.pipeline.time_filter import TIME_STRATEGY_OPTIONS
 from app.sources.registry import list_available_sources
 
 
@@ -38,6 +39,7 @@ def _render_dashboard_template(
     available_sources: list[dict[str, str]],
     selected_sources: list[str],
     selected_filter_strategy: str = "standard",
+    selected_time_strategies: list[str] | None = None,
     selected_dedupe_strategy: str = "standard",
     result: dict[str, object] | None,
     error_message: str,
@@ -50,8 +52,10 @@ def _render_dashboard_template(
     template = environment.get_template(template_name)
     return template.render(
         available_sources=available_sources,
+        available_time_strategies=TIME_STRATEGY_OPTIONS,
         selected_sources=selected_sources,
         selected_filter_strategy=selected_filter_strategy,
+        selected_time_strategies=selected_time_strategies or ["source_day"],
         selected_dedupe_strategy=selected_dedupe_strategy,
         result=result,
         error_message=error_message,
@@ -64,6 +68,7 @@ def build_dashboard_html(
     available_sources: list[dict[str, str]],
     selected_sources: list[str],
     selected_filter_strategy: str = "standard",
+    selected_time_strategies: list[str] | None = None,
     selected_dedupe_strategy: str = "standard",
     result: dict[str, object] | None,
     error_message: str,
@@ -73,6 +78,7 @@ def build_dashboard_html(
         available_sources=available_sources,
         selected_sources=selected_sources,
         selected_filter_strategy=selected_filter_strategy,
+        selected_time_strategies=selected_time_strategies,
         selected_dedupe_strategy=selected_dedupe_strategy,
         result=result,
         error_message=error_message,
@@ -84,6 +90,7 @@ def build_dashboard_preview_html(
     available_sources: list[dict[str, str]],
     selected_sources: list[str],
     selected_filter_strategy: str = "standard",
+    selected_time_strategies: list[str] | None = None,
     selected_dedupe_strategy: str = "standard",
     result: dict[str, object] | None,
     error_message: str,
@@ -93,6 +100,7 @@ def build_dashboard_preview_html(
         available_sources=available_sources,
         selected_sources=selected_sources,
         selected_filter_strategy=selected_filter_strategy,
+        selected_time_strategies=selected_time_strategies,
         selected_dedupe_strategy=selected_dedupe_strategy,
         result=result,
         error_message=error_message,
@@ -134,6 +142,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
         preview: bool,
         selected_sources: list[str],
         selected_filter_strategy: str = "standard",
+        selected_time_strategies: list[str] | None = None,
         selected_dedupe_strategy: str = "standard",
         result: dict[str, object] | None,
         error_message: str,
@@ -143,6 +152,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             available_sources=list_available_sources(),
             selected_sources=selected_sources,
             selected_filter_strategy=selected_filter_strategy,
+            selected_time_strategies=selected_time_strategies,
             selected_dedupe_strategy=selected_dedupe_strategy,
             result=result,
             error_message=error_message,
@@ -157,6 +167,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             preview=preview,
             selected_sources=self.default_sources,
             selected_filter_strategy="standard",
+            selected_time_strategies=["source_day"],
             selected_dedupe_strategy="standard",
             result=None,
             error_message="",
@@ -169,6 +180,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
         form = parse_qs(body)
         selected_sources = form.get("sources") or self.default_sources
         filter_strategy = (form.get("filter_strategy") or ["standard"])[0]
+        time_strategies = form.get("time_strategy") or []
         dedupe_strategy = (form.get("dedupe_strategy") or ["standard"])[0]
         error_message = ""
         result: dict[str, object] | None = None
@@ -177,6 +189,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             result = run_digest(
                 selected_sources=selected_sources,
                 filter_strategy=filter_strategy,
+                time_strategies=time_strategies,
                 dedupe_strategy=dedupe_strategy,
             )
         except Exception as exc:  # pragma: no cover - first version only surfaces error text
@@ -185,6 +198,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             preview=preview,
             selected_sources=selected_sources,
             selected_filter_strategy=filter_strategy,
+            selected_time_strategies=time_strategies,
             selected_dedupe_strategy=dedupe_strategy,
             result=result,
             error_message=error_message,

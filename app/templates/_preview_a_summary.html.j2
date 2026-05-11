@@ -42,6 +42,7 @@
       <div class="brief-card">
         <div class="brief-label">策略</div>
         <div>过滤策略：{{ result.filter_strategy | default("standard") }}</div>
+        <div>时间策略：{{ result.time_strategies | default(["source_day"]) | join(" / ") if result.time_strategies else "none" }}</div>
         <div>去重策略：{{ result.dedupe_strategy | default("standard") }}</div>
       </div>
       <div class="brief-card">

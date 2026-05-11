@@ -30,6 +30,22 @@
         </select>
       </label>
       <label class="source-chip">
+        <span>时间策略</span>
+        <span>
+          {% for strategy in available_time_strategies %}
+          <label class="source-chip">
+            <input
+              type="checkbox"
+              name="time_strategy"
+              value="{{ strategy.key }}"
+              {% if strategy.key in selected_time_strategies|default(["source_day"]) %}checked{% endif %}
+            />
+            <span>{{ strategy.label }}</span>
+          </label>
+          {% endfor %}
+        </span>
+      </label>
+      <label class="source-chip">
         <span>去重策略</span>
         <select name="dedupe_strategy">
           <option value="conservative" {% if selected_dedupe_strategy|default("standard") == "conservative" %}selected{% endif %}>保守</option>

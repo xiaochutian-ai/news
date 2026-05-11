@@ -49,7 +49,7 @@ def test_parse_cctv_rss_extracts_items() -> None:
     assert isinstance(articles[0].published_at, datetime)
 
 
-def test_parse_cctv_channel_page_extracts_current_links() -> None:
+def test_parse_cctv_channel_page_extracts_all_links_sorted_desc() -> None:
     html = """
     <html><body>
       <a href="https://news.cctv.com/2026/05/10/ARTI123.shtml">社区食堂更方便了</a>
@@ -58,23 +58,25 @@ def test_parse_cctv_channel_page_extracts_current_links() -> None:
     </body></html>
     """
 
-    links = parse_cctv_channel_page(html, source_day_compact="20260510")
+    links = parse_cctv_channel_page(html)
 
     assert links == [
+        ("次日文章", "https://news.cctv.com/2026/05/11/ARTI789.shtml"),
         ("社区食堂更方便了", "https://news.cctv.com/2026/05/10/ARTI123.shtml"),
         ("稳就业政策持续加力", "https://news.cctv.com/2026/05/10/ARTI456.shtml"),
     ]
 
 
-def test_parse_cctv_feed_extracts_current_links() -> None:
+def test_parse_cctv_feed_extracts_all_links_sorted_desc() -> None:
     payload = """news({"data":{"list":[
         {"title":"全面扩围 我国加快建设一刻钟便民生活圈","url":"https://news.cctv.com/2026/05/10/ARTIht6BUNpPGJerfHAfuHgu260510.shtml"},
         {"title":"次日文章","url":"https://news.cctv.com/2026/05/11/ARTI999.shtml"}
     ]}})"""
 
-    links = parse_cctv_feed(payload, source_day_compact="20260510")
+    links = parse_cctv_feed(payload)
 
     assert links == [
+        ("次日文章", "https://news.cctv.com/2026/05/11/ARTI999.shtml"),
         ("全面扩围 我国加快建设一刻钟便民生活圈", "https://news.cctv.com/2026/05/10/ARTIht6BUNpPGJerfHAfuHgu260510.shtml"),
     ]
 
@@ -105,7 +107,7 @@ def test_parse_xinhua_rss_extracts_articles() -> None:
     assert isinstance(articles[0].published_at, datetime)
 
 
-def test_parse_xinhua_channel_page_extracts_current_links() -> None:
+def test_parse_xinhua_channel_page_extracts_all_links_sorted_desc() -> None:
     html = """
     <html><body>
       <a href="https://www.news.cn/politics/20260510/abc123/c.html">养老服务再升级</a>
@@ -115,9 +117,10 @@ def test_parse_xinhua_channel_page_extracts_current_links() -> None:
     </body></html>
     """
 
-    links = parse_xinhua_channel_page(html, source_day_compact="20260510")
+    links = parse_xinhua_channel_page(html)
 
     assert links == [
+        ("次日文章", "https://www.news.cn/politics/20260511/ghi789/c.html"),
         ("养老服务再升级", "https://www.news.cn/politics/20260510/abc123/c.html"),
         ("社区卫生服务暖民心", "https://www.news.cn/local/20260510/def456/c.html"),
     ]
@@ -180,7 +183,7 @@ def test_xinhua_adapter_uses_channel_page_links(monkeypatch) -> None:
     assert articles[0].summary == "基层医疗服务进一步下沉。"
 
 
-def test_parse_people_app_nuxt_payload_extracts_current_day_articles() -> None:
+def test_parse_people_app_nuxt_payload_extracts_all_articles_sorted_desc() -> None:
     payload = """
     [
       ["Reactive", 1],
@@ -220,12 +223,71 @@ def test_parse_people_app_nuxt_payload_extracts_current_day_articles() -> None:
     ]
     """
 
-    articles = parse_people_app_nuxt_payload(payload, source_day_compact="20260510")
+    articles = parse_people_app_nuxt_payload(payload)
 
-    assert len(articles) == 1
-    assert articles[0].title == "推进便民服务升级"
-    assert articles[0].url == "https://www.peopleapp.com/column/30052109999-500007499999"
-    assert articles[0].summary == "政务服务进一步下沉。"
+    assert [article.title for article in articles] == ["次日文章", "推进便民服务升级"]
+    assert articles[1].url == "https://www.peopleapp.com/column/30052109999-500007499999"
+    assert articles[1].summary == "政务服务进一步下沉。"
+
+
+def test_parse_people_app_nuxt_payload_merges_hot_articles_and_sorts_desc() -> None:
+    payload = """
+    [
+      ["Reactive", 1],
+      {"data": 2},
+      {"hot": 3},
+      {"data": 4},
+      {
+        "list": [
+          {
+            "newsTitle": "较早的热点文章",
+            "createTime": "1778415300000",
+            "objectId": "30052101111",
+            "relId": 500007411111,
+            "newsTxt": "较早摘要"
+          }
+        ],
+        "hero": {
+          "newsTitle": "最新的头条文章",
+          "createTime": "1778422500000",
+          "objectId": "30052102222",
+          "relId": 500007422222,
+          "newsTxt": "最新摘要"
+        },
+        "cards": [
+          {
+            "newsTitle": "中间时间的卡片文章",
+            "createTime": "1778418900000",
+            "objectId": "30052103333",
+            "relId": 500007433333,
+            "newsTxt": "中间摘要"
+          },
+          {
+            "newsTitle": "次日文章",
+            "createTime": "1778457600000",
+            "objectId": "30052104444",
+            "relId": 500007444444,
+            "newsTxt": "不应被选中"
+          }
+        ]
+      }
+    ]
+    """
+
+    articles = parse_people_app_nuxt_payload(payload)
+
+    assert [article.title for article in articles] == [
+        "次日文章",
+        "最新的头条文章",
+        "中间时间的卡片文章",
+        "较早的热点文章",
+    ]
+    assert [article.url for article in articles] == [
+        "https://www.peopleapp.com/column/30052104444-500007444444",
+        "https://www.peopleapp.com/column/30052102222-500007422222",
+        "https://www.peopleapp.com/column/30052103333-500007433333",
+        "https://www.peopleapp.com/column/30052101111-500007411111",
+    ]
 
 
 def test_people_app_adapter_fetches_and_enriches_articles(monkeypatch) -> None:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from app.models import NormalizedArticle
+from app.pipeline.time_filter import filter_articles_by_time
 
 POSITIVE_KEYWORDS = {
     "医保",
@@ -103,12 +104,32 @@ def _filter_strict_articles(articles: list[NormalizedArticle]) -> list[Normalize
 def filter_articles(
     articles: list[NormalizedArticle],
     strategy: str = "standard",
+    *,
+    time_strategies: list[str] | None = None,
+    source_date: str | None = None,
+    digest_date: str | None = None,
+    window_start: str = "19:30",
+    window_end: str = "22:30",
 ) -> list[NormalizedArticle]:
+    filtered: list[NormalizedArticle]
     if strategy == "loose":
-        return _filter_loose_articles(articles)
-    if strategy == "strict":
-        return _filter_strict_articles(articles)
-    return _filter_standard_articles(articles)
+        filtered = _filter_loose_articles(articles)
+    elif strategy == "strict":
+        filtered = _filter_strict_articles(articles)
+    else:
+        filtered = _filter_standard_articles(articles)
+
+    if source_date is None or digest_date is None:
+        return filtered
+
+    return filter_articles_by_time(
+        filtered,
+        source_date=source_date,
+        digest_date=digest_date,
+        strategies=time_strategies,
+        window_start=window_start,
+        window_end=window_end,
+    )
 
 
 def filter_minsheng_articles(articles: list[NormalizedArticle]) -> list[NormalizedArticle]:

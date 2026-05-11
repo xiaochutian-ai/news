@@ -2,6 +2,7 @@ from datetime import datetime
 
 from app.models import NormalizedArticle
 from app.pipeline.filter import filter_minsheng_articles
+from app.pipeline.time_filter import filter_articles_by_time
 
 
 def _article(title: str, summary: str) -> NormalizedArticle:
@@ -43,3 +44,45 @@ def test_filter_keeps_articles_with_public_service_tag() -> None:
     filtered = filter_minsheng_articles([article])
 
     assert len(filtered) == 1
+
+
+def test_time_filter_skips_filtering_when_no_strategy_selected() -> None:
+    articles = [
+        _article("前一天文章", "内容A"),
+        _article("当天文章", "内容B"),
+    ]
+    articles[0].published_at = datetime(2026, 5, 10, 20, 0, 0)
+    articles[1].published_at = datetime(2026, 5, 11, 9, 0, 0)
+
+    filtered = filter_articles_by_time(
+        articles,
+        source_date="2026-05-10",
+        digest_date="2026-05-11",
+        strategies=[],
+        window_start="19:30",
+        window_end="22:30",
+    )
+
+    assert [item.title for item in filtered] == ["前一天文章", "当天文章"]
+
+
+def test_time_filter_supports_multiple_strategies() -> None:
+    articles = [
+        _article("窗口内文章", "内容A"),
+        _article("同日但不在窗口", "内容B"),
+        _article("次日文章", "内容C"),
+    ]
+    articles[0].published_at = datetime(2026, 5, 10, 20, 0, 0)
+    articles[1].published_at = datetime(2026, 5, 10, 10, 0, 0)
+    articles[2].published_at = datetime(2026, 5, 11, 9, 0, 0)
+
+    filtered = filter_articles_by_time(
+        articles,
+        source_date="2026-05-10",
+        digest_date="2026-05-11",
+        strategies=["source_day", "source_window"],
+        window_start="19:30",
+        window_end="22:30",
+    )
+
+    assert [item.title for item in filtered] == ["窗口内文章"]

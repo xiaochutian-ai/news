@@ -45,6 +45,7 @@ def test_build_dashboard_html_shows_sources_and_strategy_fields() -> None:
 
     assert 'name="sources"' in html
     assert 'name="filter_strategy"' in html
+    assert 'name="time_strategy"' in html
     assert 'name="dedupe_strategy"' in html
     assert 'value="standard"' in html
 
@@ -163,6 +164,7 @@ def test_build_dashboard_html_summary_shows_selected_strategies() -> None:
             "source_date": "2026-05-10",
             "selected_sources": ["xinhua"],
             "filter_strategy": "strict",
+            "time_strategies": ["source_day", "source_window"],
             "dedupe_strategy": "aggressive",
             "raw_count": 2,
             "filtered_count": 1,
@@ -182,6 +184,7 @@ def test_build_dashboard_html_summary_shows_selected_strategies() -> None:
     )
 
     assert "过滤策略：strict" in html
+    assert "时间策略：source_day / source_window" in html
     assert "去重策略：aggressive" in html
 
 
@@ -216,6 +219,7 @@ def test_build_dashboard_preview_html_shows_sources_and_strategy_fields() -> Non
 
     assert 'name="sources"' in html
     assert 'name="filter_strategy"' in html
+    assert 'name="time_strategy"' in html
     assert 'name="dedupe_strategy"' in html
 
 
@@ -299,7 +303,7 @@ def test_build_dashboard_preview_html_only_shows_top_three_per_group_before_seco
 def test_dashboard_handler_posts_selected_strategies_to_run_digest() -> None:
     handler = DashboardHandler.__new__(DashboardHandler)
     handler.path = "/run"
-    body = b"sources=xinhua&filter_strategy=strict&dedupe_strategy=aggressive"
+    body = b"sources=xinhua&filter_strategy=strict&time_strategy=source_day&time_strategy=source_window&dedupe_strategy=aggressive"
     handler.headers = {"Content-Length": str(len(body))}
     handler.rfile = io.BytesIO(body)
     handler.wfile = io.BytesIO()
@@ -314,6 +318,7 @@ def test_dashboard_handler_posts_selected_strategies_to_run_digest() -> None:
             "source_date": "2026-05-10",
             "selected_sources": ["xinhua"],
             "filter_strategy": "strict",
+            "time_strategies": ["source_day", "source_window"],
             "dedupe_strategy": "aggressive",
             "raw_count": 0,
             "filtered_count": 0,
@@ -335,6 +340,7 @@ def test_dashboard_handler_posts_selected_strategies_to_run_digest() -> None:
     mock_run_digest.assert_called_once_with(
         selected_sources=["xinhua"],
         filter_strategy="strict",
+        time_strategies=["source_day", "source_window"],
         dedupe_strategy="aggressive",
     )
 
@@ -368,8 +374,10 @@ def test_run_digest_result_contains_selected_strategies() -> None:
         result = run_digest(
             selected_sources=["xinhua"],
             filter_strategy="strict",
+            time_strategies=["source_day", "source_window"],
             dedupe_strategy="aggressive",
         )
 
     assert result["filter_strategy"] == "strict"
+    assert result["time_strategies"] == ["source_day", "source_window"]
     assert result["dedupe_strategy"] == "aggressive"
