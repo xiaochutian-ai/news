@@ -1,0 +1,29 @@
+<div class="panel">
+  <h2>结果摘要</h2>
+  {% if result %}
+  <div class="stats">
+    <div class="stat">
+      <div class="label">原始候选数</div>
+      <div class="value">{{ result.raw_count }}</div>
+    </div>
+    <div class="stat">
+      <div class="label">过滤后数量</div>
+      <div class="value">{{ result.filtered_count }}</div>
+    </div>
+    <div class="stat">
+      <div class="label">最终入选数</div>
+      <div class="value">{{ result.selected_count }}</div>
+    </div>
+  </div>
+  <div class="meta">稿件日期：{{ result.digest_date }} | 来源日期：{{ result.source_date }}</div>
+  <div class="meta">本次数据源：{{ result.selected_sources | join(" / ") }}</div>
+  <div class="meta files">
+    产物：
+    <a href="{{ result.html_url }}" target="_blank" rel="noopener noreferrer">HTML</a>
+    |
+    <a href="{{ result.json_url }}" target="_blank" rel="noopener noreferrer">JSON</a>
+  </div>
+  {% else %}
+  <p>还没有执行记录，先勾选数据源并点击上方按钮。</p>
+  {% endif %}
+</div>

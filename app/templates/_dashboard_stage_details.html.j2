@@ -1,0 +1,40 @@
+<div class="panel">
+  <h2>生成详情</h2>
+  {% if result %}
+  <div class="stage-grid">
+    {% for stage in stage_sections %}
+    {% set items = result.stages[stage.key] %}
+    <div class="stage-card">
+      <h3>{{ stage.label }}</h3>
+      <div class="stage-count">数量：{{ items | length }}</div>
+      {% if items %}
+      <div class="article-list">
+        {% for article in items %}
+        <div class="article-item">
+          <a href="{{ article.url }}" target="_blank" rel="noopener noreferrer">{{ article.title }}</a>
+          <div class="article-meta">
+            来源：{{ article.source }}
+            {% if article.published_at %} | 时间：{{ article.published_at }}{% endif %}
+            {% if article.score is not none %} | 分数：{{ "%.2f"|format(article.score) }}{% endif %}
+          </div>
+          <div class="article-summary">{{ article.summary }}</div>
+          {% if article.tags %}
+          <div class="tag-list">
+            {% for tag in article.tags %}
+            <span class="tag">{{ tag }}</span>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty">暂无数据</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p>还没有执行记录，先勾选数据源并点击上方按钮。</p>
+  {% endif %}
+</div>

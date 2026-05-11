@@ -1,0 +1,24 @@
+<div class="panel">
+  <h1>民生晨报 Dashboard</h1>
+  <h2>生成选项</h2>
+  <p>选择数据源后即可在本地页面直接执行晨报生成。</p>
+  <form method="post" action="/run">
+    <div class="source-list">
+      {% for source in available_sources %}
+      <label>
+        <input
+          type="checkbox"
+          name="sources"
+          value="{{ source.key }}"
+          {% if source.key in selected_sources %}checked{% endif %}
+        />
+        <span>{{ source.label }}</span>
+      </label>
+      {% endfor %}
+    </div>
+    <button type="submit">执行晨报生成</button>
+  </form>
+  {% if error_message %}
+  <div class="error">执行失败：{{ error_message }}</div>
+  {% endif %}
+</div>
