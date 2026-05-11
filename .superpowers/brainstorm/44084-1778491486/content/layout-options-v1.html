@@ -1,0 +1,137 @@
+<h2>Dashboard 布局方向</h2>
+<p class="subtitle">聚焦两个问题：生成选项如何结构化排布，以及生成详情如何做高密度的阶段前后对比。点击卡片可标记偏好。</p>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">方案 A · 结构化控制台 + 阶段对照台</div>
+    <div class="mockup-body">
+      <div style="display:grid;gap:18px;">
+        <div style="padding:16px;border:1px solid #2d3f5f;border-radius:16px;background:#0f1726;">
+          <div class="label">生成选项</div>
+          <div style="display:grid;grid-template-columns:1.15fr 1fr 0.9fr;gap:12px;margin-top:10px;">
+            <div style="padding:12px;border-radius:12px;background:#131f33;">
+              <strong>信息源</strong>
+              <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
+                <span style="padding:6px 10px;border-radius:999px;background:#1c2b43;">人民日报</span>
+                <span style="padding:6px 10px;border-radius:999px;background:#1c2b43;">人民日报客户端</span>
+                <span style="padding:6px 10px;border-radius:999px;background:#1c2b43;">央视</span>
+                <span style="padding:6px 10px;border-radius:999px;background:#1c2b43;">新华社</span>
+              </div>
+            </div>
+            <div style="padding:12px;border-radius:12px;background:#131f33;">
+              <strong>过滤策略</strong>
+              <div style="margin-top:8px;display:grid;gap:8px;">
+                <div class="mock-input">关键词/标签双判定</div>
+                <div class="mock-input">宽松 / 标准 / 严格</div>
+                <div class="mock-input">去重强度</div>
+              </div>
+            </div>
+            <div style="padding:12px;border-radius:12px;background:#131f33;">
+              <strong>时间筛选</strong>
+              <div style="margin-top:8px;display:grid;gap:8px;">
+                <div class="mock-input">按来源日</div>
+                <div class="mock-input">时间窗口</div>
+                <button class="mock-button" style="width:100%;">执行生成</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="padding:16px;border:1px solid #2d3f5f;border-radius:16px;background:#0f1726;">
+          <div class="label">生成详情</div>
+          <div style="display:grid;grid-template-columns:220px 1fr;gap:12px;margin-top:10px;">
+            <div style="padding:12px;border-radius:12px;background:#131f33;display:grid;gap:8px;">
+              <div style="padding:10px;border-radius:10px;background:#1d2d46;">原始候选</div>
+              <div style="padding:10px;border-radius:10px;background:#27405f;color:#fff;">过滤后</div>
+              <div style="padding:10px;border-radius:10px;background:#1d2d46;">去重后</div>
+              <div style="padding:10px;border-radius:10px;background:#1d2d46;">最终入选</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div style="padding:12px;border-radius:12px;background:#131f33;">
+                <strong>前一阶段</strong>
+                <div style="margin-top:8px;display:grid;gap:8px;">
+                  <div style="padding:10px;border-radius:10px;background:#19263b;font-size:12px;">标题 A<div style="opacity:.7;margin-top:4px;">摘要默认折叠，点击展开</div></div>
+                  <div style="padding:10px;border-radius:10px;background:#19263b;font-size:12px;">标题 B</div>
+                </div>
+              </div>
+              <div style="padding:12px;border-radius:12px;background:#131f33;">
+                <strong>当前阶段</strong>
+                <div style="margin-top:8px;display:grid;gap:8px;">
+                  <div style="padding:10px;border-radius:10px;background:#203452;font-size:12px;">标题 A<div style="opacity:.7;margin-top:4px;">保留原因 / 分数 / 标签</div></div>
+                  <div style="padding:10px;border-radius:10px;background:#203452;font-size:12px;">标题 C</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">方案 B · 上下分区 + 结果漏斗细表</div>
+    <div class="mockup-body">
+      <div style="display:grid;gap:18px;">
+        <div style="padding:16px;border:1px solid #2d3f5f;border-radius:16px;background:#0f1726;">
+          <div class="label">生成选项</div>
+          <div style="display:grid;gap:12px;margin-top:10px;">
+            <div style="padding:12px;border-radius:12px;background:#131f33;">
+              <strong>信息源</strong>
+              <div style="margin-top:8px;" class="mock-sidebar">四列多选区，支持按来源类型分组</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+              <div style="padding:12px;border-radius:12px;background:#131f33;"><strong>过滤策略</strong><div style="margin-top:8px;" class="mock-input">策略单选</div></div>
+              <div style="padding:12px;border-radius:12px;background:#131f33;"><strong>时间筛选</strong><div style="margin-top:8px;" class="mock-input">策略多选</div></div>
+              <div style="padding:12px;border-radius:12px;background:#131f33;"><strong>去重策略</strong><div style="margin-top:8px;" class="mock-input">强度单选</div></div>
+            </div>
+            <button class="mock-button" style="width:220px;">执行生成</button>
+          </div>
+        </div>
+
+        <div style="padding:16px;border:1px solid #2d3f5f;border-radius:16px;background:#0f1726;">
+          <div class="label">生成详情</div>
+          <div style="margin-top:10px;display:grid;gap:12px;">
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+              <div style="padding:10px;border-radius:10px;background:#1d2d46;text-align:center;">原始 24</div>
+              <div style="padding:10px;border-radius:10px;background:#27405f;text-align:center;">过滤 14</div>
+              <div style="padding:10px;border-radius:10px;background:#1d2d46;text-align:center;">去重 9</div>
+              <div style="padding:10px;border-radius:10px;background:#1d2d46;text-align:center;">入选 5</div>
+            </div>
+            <div style="padding:12px;border-radius:12px;background:#131f33;">
+              <strong>漏斗细表</strong>
+              <div style="margin-top:8px;display:grid;gap:8px;font-size:12px;">
+                <div style="display:grid;grid-template-columns:1.3fr .8fr .8fr .8fr;gap:8px;padding:8px 10px;background:#19263b;border-radius:8px;">
+                  <span>文章标题</span><span>Raw</span><span>Filtered</span><span>Chosen</span>
+                </div>
+                <div style="display:grid;grid-template-columns:1.3fr .8fr .8fr .8fr;gap:8px;padding:8px 10px;background:#19263b;border-radius:8px;">
+                  <span>文章 A</span><span>Yes</span><span>Yes</span><span>No</span>
+                </div>
+                <div style="display:grid;grid-template-columns:1.3fr .8fr .8fr .8fr;gap:8px;padding:8px 10px;background:#19263b;border-radius:8px;">
+                  <span>文章 B</span><span>Yes</span><span>No</span><span>No</span>
+                </div>
+                <div style="opacity:.7;">摘要收起，鼠标悬停或展开行后查看。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="options" style="margin-top:20px;">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>方案 A</h3>
+      <p>左侧阶段筛选，右侧始终显示前后两阶段并排对照，更适合快速判断筛选效果。</p>
+    </div>
+  </div>
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>方案 B</h3>
+      <p>更像结果漏斗和追踪表，适合总览，但阶段切换时不如双栏对照直接。</p>
+    </div>
+  </div>
+</div>

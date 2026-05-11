@@ -1,0 +1,175 @@
+<h2>Dashboard 收敛稿</h2>
+<p class="subtitle">基于你的反馈，当前版本固定采用方案 A，并将默认对比切到“过滤后 vs 去重后”。这一版重点验证信息密度、分区方式和阶段切换交互。</p>
+
+<div class="mockup">
+  <div class="mockup-header">方案 A / v2 · 结构化生成选项 + 高密度阶段对照</div>
+  <div class="mockup-body">
+    <div style="display:grid;gap:18px;">
+      <div style="padding:18px;border:1px solid #314565;border-radius:18px;background:#0d1524;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;">
+          <div>
+            <div class="label">生成选项</div>
+            <h3 style="margin:6px 0 0;">按控制维度分仓</h3>
+          </div>
+          <div style="opacity:.72;font-size:12px;">执行前只看控制项，不混入结果区信息</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1.2fr 1fr .9fr;gap:12px;margin-top:14px;">
+          <div style="padding:14px;border-radius:14px;background:#121d31;">
+            <strong style="display:block;">信息源</strong>
+            <div style="margin-top:10px;display:grid;gap:10px;">
+              <div style="display:flex;justify-content:space-between;gap:8px;padding:10px 12px;border-radius:12px;background:#1a2942;">
+                <span>人民日报</span><span style="opacity:.66;">主流党媒</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;gap:8px;padding:10px 12px;border-radius:12px;background:#1a2942;">
+                <span>人民日报客户端</span><span style="opacity:.66;">移动端补充</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;gap:8px;padding:10px 12px;border-radius:12px;background:#25446b;">
+                <span>央视</span><span style="opacity:.9;">已勾选</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;gap:8px;padding:10px 12px;border-radius:12px;background:#25446b;">
+                <span>新华社</span><span style="opacity:.9;">已勾选</span>
+              </div>
+            </div>
+          </div>
+          <div style="padding:14px;border-radius:14px;background:#121d31;">
+            <strong style="display:block;">过滤策略</strong>
+            <div style="margin-top:10px;display:grid;gap:10px;">
+              <div class="mock-input">关键词与标签双判定</div>
+              <div class="mock-input">严格度：宽松 / 标准 / 严格</div>
+              <div class="mock-input">去重强度：保守 / 标准 / 激进</div>
+              <div style="padding:10px 12px;border-radius:12px;background:#1a2942;font-size:12px;opacity:.78;">策略说明紧贴控件，减少理解跳转</div>
+            </div>
+          </div>
+          <div style="padding:14px;border-radius:14px;background:#121d31;">
+            <strong style="display:block;">时间筛选</strong>
+            <div style="margin-top:10px;display:grid;gap:10px;">
+              <div class="mock-input">按来源日</div>
+              <div class="mock-input">时间窗口叠加</div>
+              <div style="padding:10px 12px;border-radius:12px;background:#1a2942;font-size:12px;">默认保留来源日</div>
+              <button class="mock-button" style="width:100%;margin-top:6px;">执行晨报生成</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="padding:18px;border:1px solid #314565;border-radius:18px;background:#0d1524;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;">
+          <div>
+            <div class="label">结果摘要</div>
+            <h3 style="margin:6px 0 0;">摘要仍独立，但只保留决策信息</h3>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;font-size:12px;">
+            <span style="padding:8px 10px;border-radius:999px;background:#1b2c46;">Raw 24</span>
+            <span style="padding:8px 10px;border-radius:999px;background:#27405f;">Filtered 14</span>
+            <span style="padding:8px 10px;border-radius:999px;background:#27405f;">Deduped 9</span>
+            <span style="padding:8px 10px;border-radius:999px;background:#1b2c46;">Chosen 5</span>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:12px;margin-top:14px;">
+          <div style="padding:14px;border-radius:14px;background:#121d31;">
+            <div style="font-size:12px;opacity:.7;">稿件日期 / 来源日期 / 数据源 / 产物链接</div>
+            <div style="margin-top:8px;display:grid;gap:8px;">
+              <div style="padding:10px 12px;border-radius:12px;background:#1a2942;">2026-05-11 / 2026-05-10</div>
+              <div style="padding:10px 12px;border-radius:12px;background:#1a2942;">新华社 / 央视 / 人民日报</div>
+            </div>
+          </div>
+          <div style="padding:14px;border-radius:14px;background:#121d31;">
+            <div style="font-size:12px;opacity:.7;">本次策略</div>
+            <div style="margin-top:8px;display:grid;gap:8px;">
+              <div style="padding:10px 12px;border-radius:12px;background:#1a2942;">过滤：standard</div>
+              <div style="padding:10px 12px;border-radius:12px;background:#1a2942;">时间：source_day + window</div>
+              <div style="padding:10px 12px;border-radius:12px;background:#1a2942;">去重：standard</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="padding:18px;border:1px solid #314565;border-radius:18px;background:#0d1524;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;">
+          <div>
+            <div class="label">生成详情</div>
+            <h3 style="margin:6px 0 0;">默认对比：过滤后 vs 去重后</h3>
+          </div>
+          <div style="opacity:.72;font-size:12px;">小号字体 + 摘要折叠 + 差异计数，优先判断去重效果</div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:220px 1fr;gap:14px;margin-top:14px;">
+          <div style="padding:12px;border-radius:14px;background:#121d31;display:grid;gap:8px;">
+            <div style="padding:10px 12px;border-radius:10px;background:#1b2c46;font-size:13px;">原始候选</div>
+            <div style="padding:10px 12px;border-radius:10px;background:#32537d;font-size:13px;color:#fff;">过滤后</div>
+            <div style="padding:10px 12px;border-radius:10px;background:#4b78b0;font-size:13px;color:#fff;">去重后</div>
+            <div style="padding:10px 12px;border-radius:10px;background:#1b2c46;font-size:13px;">最终入选</div>
+            <div style="padding-top:8px;border-top:1px solid #2d3f5f;font-size:12px;opacity:.72;">
+              当前对比说明
+              <div style="margin-top:4px;">去重移除 5 条，保留 9 条</div>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div style="padding:12px;border-radius:14px;background:#121d31;">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                <strong>过滤后</strong>
+                <span style="font-size:11px;opacity:.7;">14 条</span>
+              </div>
+              <div style="margin-top:8px;display:grid;gap:8px;">
+                <div style="padding:10px;border-radius:10px;background:#18273d;font-size:12px;line-height:1.45;">
+                  <div style="font-weight:600;">文章 A</div>
+                  <div style="opacity:.72;margin-top:4px;">新华社 | 10:30 | 分数 91.2</div>
+                  <details style="margin-top:6px;">
+                    <summary style="cursor:pointer;opacity:.85;">展开摘要</summary>
+                    <div style="margin-top:6px;opacity:.76;">摘要默认折叠，减少首屏噪音，只在需要时展开阅读全文概述。</div>
+                  </details>
+                </div>
+                <div style="padding:10px;border-radius:10px;background:#18273d;font-size:12px;">文章 B<div style="opacity:.68;margin-top:4px;">该条将在去重阶段被移除</div></div>
+                <div style="padding:10px;border-radius:10px;background:#18273d;font-size:12px;">文章 C</div>
+              </div>
+            </div>
+
+            <div style="padding:12px;border-radius:14px;background:#121d31;">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                <strong>去重后</strong>
+                <span style="font-size:11px;opacity:.7;">9 条</span>
+              </div>
+              <div style="margin-top:8px;display:grid;gap:8px;">
+                <div style="padding:10px;border-radius:10px;background:#223757;font-size:12px;line-height:1.45;">
+                  <div style="font-weight:600;">文章 A</div>
+                  <div style="opacity:.78;margin-top:4px;">保留，标题表达更完整，内容重复度低</div>
+                </div>
+                <div style="padding:10px;border-radius:10px;background:#223757;font-size:12px;line-height:1.45;">
+                  <div style="font-weight:600;">文章 C</div>
+                  <div style="opacity:.78;margin-top:4px;">保留，来源补充不同事实细节</div>
+                </div>
+                <div style="padding:10px;border-radius:10px;background:#2e2433;font-size:12px;line-height:1.45;border:1px dashed #7e5a7b;">
+                  <div style="font-weight:600;">文章 B</div>
+                  <div style="opacity:.78;margin-top:4px;">已移除，原因：与文章 A 高度重复</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:20px;">
+  <h3>一个待确认的小交互</h3>
+  <p class="subtitle">左侧阶段筛选本身已经固定为“纵向步骤条”，现在只确认它是更适合强调状态，还是强调数量变化。</p>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="state-first" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>状态优先</h3>
+      <p>当前阶段高亮更强，只在底部显示“去掉多少 / 保留多少”，阅读路径更干净。</p>
+    </div>
+  </div>
+  <div class="option" data-choice="count-first" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>数量优先</h3>
+      <p>每个阶段按钮直接显示数量和变化，更像漏斗控制台，信息更满但会更紧。</p>
+    </div>
+  </div>
+</div>
