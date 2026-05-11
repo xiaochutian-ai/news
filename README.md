@@ -10,8 +10,20 @@
 ## 快速开始
 
 ```bash
-python3 -m pip install -r app/requirements.txt
-python3 -m app.main digest
+./start_dashboard.sh
+```
+
+首次启动会自动检查并安装 Dashboard 依赖：
+
+- `Homebrew`
+- `python3`
+- 项目内 `.venv`
+- `app/requirements.txt` 中声明的 Python 包
+
+如果只想手动生成一版稿件，也可以在环境准备完成后执行：
+
+```bash
+.venv/bin/python -m app.main digest
 ```
 
 ## 运行本地服务
@@ -21,14 +33,15 @@ python3 -m app.main digest
 ### 启动服务
 
 ```bash
-python3 -m pip install -r app/requirements.txt
-python3 -m app.dashboard_server
+./start_dashboard.sh
 ```
 
-如果希望一键启动，并在端口被占用时自动先杀后起，可以直接执行：
+脚本会先完成环境检查，再在端口被占用时自动先杀后起。
+
+如果需要手动启动 Dashboard 作为兜底方式，可以执行：
 
 ```bash
-./start_dashboard.sh
+.venv/bin/python -m app.dashboard_server
 ```
 
 启动后终端会输出：
@@ -47,7 +60,7 @@ dashboard=http://127.0.0.1:8000/
 如果 `8000` 端口已被占用，可以改用其他端口启动：
 
 ```bash
-python3 -c "from app.dashboard_server import serve_dashboard; serve_dashboard(port=8001)"
+.venv/bin/python -c "from app.dashboard_server import serve_dashboard; serve_dashboard(port=8001)"
 ```
 
 或者：

@@ -4,11 +4,14 @@ set -euo pipefail
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$PROJECT_ROOT"
 
+"$PROJECT_ROOT/scripts/ensure_dashboard_env.sh"
+
 HOST="${HOST:-127.0.0.1}"
 PORT="${PORT:-${1:-8000}}"
 LOG_DIR="$PROJECT_ROOT/.tmp"
 LOG_PATH="$LOG_DIR/dashboard.log"
 DASHBOARD_URL="http://${HOST}:${PORT}/"
+PYTHON_BIN="$PROJECT_ROOT/.venv/bin/python"
 
 mkdir -p "$LOG_DIR"
 
@@ -27,7 +30,7 @@ if [ -n "$existing_pids" ]; then
 fi
 
 echo "启动 Dashboard 服务..."
-nohup python3 -c "from app.dashboard_server import serve_dashboard; serve_dashboard(host='${HOST}', port=${PORT})" \
+nohup "$PYTHON_BIN" -c "from app.dashboard_server import serve_dashboard; serve_dashboard(host='${HOST}', port=${PORT})" \
     >"$LOG_PATH" 2>&1 &
 server_pid=$!
 

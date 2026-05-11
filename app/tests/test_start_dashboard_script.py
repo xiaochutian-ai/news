@@ -82,3 +82,10 @@ def test_start_dashboard_script_replaces_existing_process_on_same_port() -> None
         if dummy_server.poll() is None:
             dummy_server.kill()
             dummy_server.wait(timeout=5)
+
+
+def test_start_dashboard_script_bootstraps_env_before_start() -> None:
+    script = SCRIPT_PATH.read_text(encoding="utf-8")
+
+    assert 'scripts/ensure_dashboard_env.sh' in script
+    assert '.venv/bin/python' in script
