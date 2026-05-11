@@ -17,6 +17,7 @@ class AppConfig:
     output_dir: Path = Path(os.getenv("OUTPUT_DIR", "output/drafts"))
     data_dir: Path = Path(os.getenv("DATA_DIR", "data/app"))
     people_daily_enabled: bool = os.getenv("PEOPLE_DAILY_ENABLED", "true").lower() == "true"
+    people_app_enabled: bool = os.getenv("PEOPLE_APP_ENABLED", "true").lower() == "true"
     cctv_enabled: bool = os.getenv("CCTV_ENABLED", "true").lower() == "true"
     wechat_app_id: str = os.getenv("WECHAT_APP_ID", "")
     wechat_app_secret: str = os.getenv("WECHAT_APP_SECRET", "")

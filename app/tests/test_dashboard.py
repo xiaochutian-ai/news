@@ -17,6 +17,7 @@ def test_build_dashboard_html_shows_sources() -> None:
     html = build_dashboard_html(
         available_sources=[
             {"key": "people_daily", "label": "人民日报"},
+            {"key": "people_app", "label": "人民日报客户端"},
             {"key": "cctv", "label": "央视"},
             {"key": "xinhua", "label": "新华社"},
         ],
@@ -27,6 +28,7 @@ def test_build_dashboard_html_shows_sources() -> None:
 
     assert "执行晨报生成" in html
     assert "新华社" in html
+    assert "人民日报客户端" in html
     assert 'name="sources"' in html
 
 
@@ -335,6 +337,10 @@ def test_dashboard_handler_posts_selected_strategies_to_run_digest() -> None:
         filter_strategy="strict",
         dedupe_strategy="aggressive",
     )
+
+
+def test_dashboard_handler_default_sources_include_people_app() -> None:
+    assert "people_app" in DashboardHandler.default_sources
 
 
 def test_run_digest_result_contains_selected_strategies() -> None:

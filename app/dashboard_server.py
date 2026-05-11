@@ -100,7 +100,7 @@ def build_dashboard_preview_html(
 
 
 class DashboardHandler(BaseHTTPRequestHandler):
-    default_sources = ["people_daily", "cctv", "xinhua"]
+    default_sources = ["people_daily", "people_app", "cctv", "xinhua"]
 
     def _write_html(self, html: str) -> None:
         self.send_response(200)

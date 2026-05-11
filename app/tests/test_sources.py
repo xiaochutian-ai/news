@@ -6,6 +6,7 @@ from app.sources.cctv import (
     parse_cctv_feed,
     parse_cctv_rss,
 )
+from app.sources.people_app import PeopleAppAdapter, parse_people_app_nuxt_payload
 from app.sources.people_daily import parse_people_daily_index
 from app.sources.registry import build_source_adapters, list_available_sources
 from app.sources.xinhua import XinhuaAdapter, parse_xinhua_channel_page, parse_xinhua_rss
@@ -179,6 +180,102 @@ def test_xinhua_adapter_uses_channel_page_links(monkeypatch) -> None:
     assert articles[0].summary == "基层医疗服务进一步下沉。"
 
 
+def test_parse_people_app_nuxt_payload_extracts_current_day_articles() -> None:
+    payload = """
+    [
+      ["Reactive", 1],
+      {"data": 2},
+      {"hot": 3},
+      {"data": 4},
+      {"list": 5},
+      [6, 14],
+      {
+        "newsTitle": 7,
+        "createTime": 8,
+        "objectId": 9,
+        "relId": 10,
+        "source": 11,
+        "newsTxt": 12
+      },
+      "推进便民服务升级",
+      "1778415300000",
+      "30052109999",
+      500007499999,
+      "人民日报客户端",
+      "政务服务进一步下沉。",
+      null,
+      {
+        "newsTitle": 15,
+        "createTime": 16,
+        "objectId": 17,
+        "relId": 18,
+        "source": 11,
+        "newsTxt": 19
+      },
+      "次日文章",
+      "1778457600000",
+      "30052108888",
+      500007488888,
+      "不应被选中。"
+    ]
+    """
+
+    articles = parse_people_app_nuxt_payload(payload, source_day_compact="20260510")
+
+    assert len(articles) == 1
+    assert articles[0].title == "推进便民服务升级"
+    assert articles[0].url == "https://www.peopleapp.com/column/30052109999-500007499999"
+    assert articles[0].summary == "政务服务进一步下沉。"
+
+
+def test_people_app_adapter_fetches_and_enriches_articles(monkeypatch) -> None:
+    adapter = PeopleAppAdapter()
+    home_html = """
+    <html><body>
+      <script id="__NUXT_DATA__" type="application/json">
+      [
+        ["Reactive", 1],
+        {"data": 2},
+        {"hot": 3},
+        {"data": 4},
+        {"list": 5},
+        [6],
+        {
+          "newsTitle": 7,
+          "createTime": 8,
+          "objectId": 9,
+          "relId": 10,
+          "source": 11,
+          "newsTxt": 12
+        },
+        "推进便民服务升级",
+        "1778415300000",
+        "30052109999",
+        500007499999,
+        "人民日报客户端",
+        "政务服务进一步下沉。"
+      ]
+      </script>
+    </body></html>
+    """
+    detail_html = "<html><body><p>政务服务进一步下沉。</p><p>群众办事更便捷。</p></body></html>"
+
+    def fake_get_text(url: str, *, encoding: str | None = None) -> str:
+        if url == adapter.home_url:
+            return home_html
+        return detail_html
+
+    monkeypatch.setattr(adapter, "get_text", fake_get_text)
+
+    articles = adapter.fetch("20260510")
+
+    assert len(articles) == 1
+    assert articles[0].source == "people_app"
+    assert articles[0].url == "https://www.peopleapp.com/column/30052109999-500007499999"
+    assert articles[0].summary == "政务服务进一步下沉。"
+    assert articles[0].content == "政务服务进一步下沉。\n群众办事更便捷。"
+
+
 def test_build_source_adapters_uses_selected_sources() -> None:
     config = AppConfig()
 
@@ -187,7 +284,15 @@ def test_build_source_adapters_uses_selected_sources() -> None:
     assert [adapter.source_name for adapter in adapters] == ["people_daily", "xinhua"]
 
 
-def test_list_available_sources_includes_xinhua() -> None:
+def test_build_source_adapters_supports_people_app() -> None:
+    config = AppConfig()
+
+    adapters = build_source_adapters(config, selected_sources=["people_daily", "people_app"])
+
+    assert [adapter.source_name for adapter in adapters] == ["people_daily", "people_app"]
+
+
+def test_list_available_sources_includes_people_app() -> None:
     keys = [item["key"] for item in list_available_sources()]
 
-    assert keys == ["people_daily", "cctv", "xinhua"]
+    assert keys == ["people_daily", "people_app", "cctv", "xinhua"]
