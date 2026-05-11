@@ -1,0 +1,37 @@
+{
+  "name": "Evening Minsheng Digest",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "mode": "custom",
+              "cronExpression": "30 22 * * *"
+            }
+          ]
+        }
+      },
+      "id": "cron-node",
+      "name": "每日 22:30 触发",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [260, 260]
+    },
+    {
+      "parameters": {
+        "command": "cd /files && python3 -m app.main digest"
+      },
+      "id": "command-node",
+      "name": "生成晚间摘要",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [520, 260]
+    }
+  ],
+  "connections": {
+    "每日 22:30 触发": {
+      "main": [[{ "node": "生成晚间摘要", "type": "main", "index": 0 }]]
+    }
+  }
+}

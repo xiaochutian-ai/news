@@ -1,0 +1,28 @@
+{
+  "name": "Manual Review Placeholder",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "手动触发",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [260, 260]
+    },
+    {
+      "parameters": {
+        "command": "cd /files && ls -lah output/drafts"
+      },
+      "id": "list-drafts",
+      "name": "查看候选稿",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [520, 260]
+    }
+  ],
+  "connections": {
+    "手动触发": {
+      "main": [[{ "node": "查看候选稿", "type": "main", "index": 0 }]]
+    }
+  }
+}

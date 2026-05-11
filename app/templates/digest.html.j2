@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>{{ draft.title }}</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #222; line-height: 1.7; padding: 24px; }
+    h1 { font-size: 28px; margin-bottom: 8px; }
+    .intro { color: #555; margin-bottom: 20px; }
+    .meta { color: #888; font-size: 14px; margin-bottom: 28px; }
+    .item { padding: 18px 0; border-top: 1px solid #eee; }
+    .item h2 { font-size: 20px; margin: 0 0 8px; }
+    .source { color: #666; font-size: 14px; }
+    .reason { color: #999; font-size: 13px; }
+    a { color: #0a66c2; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <h1>{{ draft.title }}</h1>
+  <div class="intro">{{ draft.intro }}</div>
+  <div class="meta">采集窗口：{{ draft.window_label }} | 生成时间：{{ draft.generated_at.strftime('%Y-%m-%d %H:%M:%S') }}</div>
+  {% for item in draft.items %}
+  <div class="item">
+    <h2>{{ loop.index }}. {{ item.title }}</h2>
+    <div>{{ item.summary }}</div>
+    <div class="source">来源：{{ item.source }} | 热度分：{{ '%.1f'|format(item.score) }}</div>
+    <div class="reason">入选理由：{{ item.reason }}</div>
+    <div><a href="{{ item.url }}">查看原文</a></div>
+  </div>
+  {% endfor %}
+</body>
+</html>

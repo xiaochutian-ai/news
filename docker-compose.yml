@@ -1,0 +1,15 @@
+services:
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n-minsheng-news
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - TZ=Asia/Shanghai
+      - N8N_HOST=localhost
+      - N8N_SECURE_COOKIE=false
+      - GENERIC_TIMEZONE=Asia/Shanghai
+    volumes:
+      - ./data/n8n:/home/node/.n8n
+      - ./:/files
