@@ -2,13 +2,19 @@ from __future__ import annotations
 
 from datetime import datetime
 from email.utils import parsedate_to_datetime
+import json
 from urllib.parse import urljoin
+import re
 import xml.etree.ElementTree as ET
 
 from bs4 import BeautifulSoup
 
 from app.models import RawArticle
 from app.sources.base import BaseSourceAdapter
+
+
+CCTV_LINK_PATTERN = re.compile(r"https://news\.cctv\.com/(\d{4})/(\d{2})/(\d{2})/[^/]+\.shtml")
+JSONP_WRAPPER_PATTERN = re.compile(r"^[^(]+\((.*)\)\s*$", re.DOTALL)
 
 
 def parse_cctv_rss(xml_text: str) -> list[RawArticle]:
@@ -35,33 +41,62 @@ def parse_cctv_rss(xml_text: str) -> list[RawArticle]:
     return items
 
 
+def parse_cctv_channel_page(html: str, *, source_day_compact: str) -> list[tuple[str, str]]:
+    soup = BeautifulSoup(html, "html.parser")
+    target_date = f"{source_day_compact[:4]}/{source_day_compact[4:6]}/{source_day_compact[6:]}"
+    matches: list[tuple[str, str]] = []
+    seen: set[str] = set()
+    for link in soup.find_all("a", href=True):
+        title = " ".join(link.get_text(" ", strip=True).split())
+        href = link["href"].strip()
+        if not title or href in seen:
+            continue
+        if not href.startswith("https://news.cctv.com/") or target_date not in href:
+            continue
+        if not CCTV_LINK_PATTERN.match(href):
+            continue
+        seen.add(href)
+        matches.append((title, href))
+    return matches
+
+
+def parse_cctv_feed(feed_text: str, *, source_day_compact: str) -> list[tuple[str, str]]:
+    matched = JSONP_WRAPPER_PATTERN.match(feed_text.strip())
+    if not matched:
+        return []
+    payload = json.loads(matched.group(1))
+    target_date = f"{source_day_compact[:4]}/{source_day_compact[4:6]}/{source_day_compact[6:]}"
+    matches: list[tuple[str, str]] = []
+    seen: set[str] = set()
+    for item in payload.get("data", {}).get("list", []):
+        title = " ".join(str(item.get("title", "")).split())
+        url = str(item.get("url", "")).strip()
+        if not title or not url or url in seen:
+            continue
+        if target_date not in url or not CCTV_LINK_PATTERN.match(url):
+            continue
+        seen.add(url)
+        matches.append((title, url))
+    return matches
+
+
 class CCTVAdapter(BaseSourceAdapter):
     source_name = "cctv"
-    section_urls = [
-        "https://news.cctv.com/china/",
-        "https://news.cctv.com/society/",
+    feed_urls = [
+        "https://news.cctv.com/2019/07/gaiban/cmsdatainterface/page/news_1.jsonp",
     ]
 
     def fetch(self, source_day_compact: str) -> list[RawArticle]:
-        date_prefix = (
-            f"https://news.cctv.com/{source_day_compact[:4]}/"
-            f"{source_day_compact[4:6]}/{source_day_compact[6:]}/"
-        )
         results: list[RawArticle] = []
         seen: set[str] = set()
-        for section_url in self.section_urls:
+        for feed_url in self.feed_urls:
             try:
-                html = self.get_text(section_url)
+                feed_text = self.get_text(feed_url, encoding="utf-8")
             except Exception:
                 continue
-            soup = BeautifulSoup(html, "html.parser")
-            for link in soup.find_all("a", href=True):
-                href = link["href"]
-                title = " ".join(link.get_text(" ", strip=True).split())
-                if not title:
-                    continue
-                absolute = urljoin(section_url, href)
-                if not absolute.startswith(date_prefix) or absolute in seen:
+            for title, absolute in parse_cctv_feed(feed_text, source_day_compact=source_day_compact):
+                absolute = urljoin(feed_url, absolute)
+                if absolute in seen:
                     continue
                 seen.add(absolute)
                 try:

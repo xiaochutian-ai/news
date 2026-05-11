@@ -1,0 +1,31 @@
+<section class="panel summary-panel">
+  <div class="section-head">
+    <div>
+      <div class="section-kicker">Control Layer</div>
+      <h2>生成选项</h2>
+    </div>
+    <div class="hint">选择数据源后可在预览页直接执行真实抓取与晨报生成。</div>
+  </div>
+  <form method="post" action="/preview/design-a/run">
+    <div class="source-list">
+      {% for source in available_sources %}
+      <label class="source-chip">
+        <input
+          type="checkbox"
+          name="sources"
+          value="{{ source.key }}"
+          {% if source.key in selected_sources %}checked{% endif %}
+        />
+        <span>{{ source.label }}</span>
+      </label>
+      {% endfor %}
+    </div>
+    <div class="actions">
+      <button type="submit">执行晨报生成</button>
+      <div class="hint">当前预览页仅改变视觉，不改变正式 Dashboard 的模板和行为。</div>
+    </div>
+  </form>
+  {% if error_message %}
+  <div class="error">执行失败：{{ error_message }}</div>
+  {% endif %}
+</section>

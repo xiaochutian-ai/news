@@ -1,0 +1,54 @@
+<section class="panel summary-panel">
+  <div class="section-head">
+    <div>
+      <div class="section-kicker">Signal Snapshot</div>
+      <h2>结果摘要</h2>
+    </div>
+    <div class="hint">重点呈现每轮执行的信号强度与最终稿件产物。</div>
+  </div>
+  {% if result %}
+  <div class="summary-grid">
+    <div class="stats">
+      <div class="stat">
+        <div class="label">原始候选数</div>
+        <div class="value">{{ result.raw_count }}</div>
+        <div class="foot">所有抓取到的候选条目</div>
+      </div>
+      <div class="stat">
+        <div class="label">过滤后数量</div>
+        <div class="value">{{ result.filtered_count }}</div>
+        <div class="foot">命中民生主题后的结果</div>
+      </div>
+      <div class="stat">
+        <div class="label">最终入选数</div>
+        <div class="value">{{ result.selected_count }}</div>
+        <div class="foot">进入晨报草稿的最终条目</div>
+      </div>
+    </div>
+    <div class="summary-side">
+      <div class="brief-card">
+        <div class="brief-label">时间窗口</div>
+        <div>稿件日期：{{ result.digest_date }}</div>
+        <div>来源日期：{{ result.source_date }}</div>
+      </div>
+      <div class="brief-card">
+        <div class="brief-label">本次数据源</div>
+        <div class="source-badges">
+          {% for source in result.selected_sources %}
+          <span class="source-badge">{{ source }}</span>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="brief-card">
+        <div class="brief-label">产物入口</div>
+        <div class="artifact-links">
+          <a href="{{ result.html_url }}" target="_blank" rel="noopener noreferrer">打开 HTML 产物</a>
+          <a href="{{ result.json_url }}" target="_blank" rel="noopener noreferrer">打开 JSON 产物</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="empty">还没有执行记录。先在上方选择数据源并点击执行，即可看到摘要统计与最终产物入口。</div>
+  {% endif %}
+</section>
