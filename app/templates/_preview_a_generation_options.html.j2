@@ -4,59 +4,76 @@
       <div class="section-kicker">Control Layer</div>
       <h2>生成选项</h2>
     </div>
-    <div class="hint">选择数据源后可在预览页直接执行真实抓取与晨报生成。</div>
+    <div class="hint">按信息源、过滤策略、时间筛选三类控制维度排布，保持与正式页一致的执行语义。</div>
   </div>
   <form method="post" action="/preview/design-a/run">
-    <div class="source-list">
-      {% for source in available_sources %}
-      <label class="source-chip">
-        <input
-          type="checkbox"
-          name="sources"
-          value="{{ source.key }}"
-          {% if source.key in selected_sources %}checked{% endif %}
-        />
-        <span>{{ source.label }}</span>
-      </label>
-      {% endfor %}
-    </div>
-    <div class="source-list">
-      <label class="source-chip">
-        <span>过滤策略</span>
-        <select name="filter_strategy">
-          <option value="loose" {% if selected_filter_strategy|default("standard") == "loose" %}selected{% endif %}>宽松</option>
-          <option value="standard" {% if selected_filter_strategy|default("standard") == "standard" %}selected{% endif %}>标准</option>
-          <option value="strict" {% if selected_filter_strategy|default("standard") == "strict" %}selected{% endif %}>严格</option>
-        </select>
-      </label>
-      <label class="source-chip">
-        <span>时间策略</span>
-        <span>
+    <div class="control-layout">
+      <section class="control-group">
+        <div class="control-group-title">信息源</div>
+        <div class="control-group-copy">信源卡片用于决定抓取输入，优先控制候选面。</div>
+        <div class="source-options">
+          {% for source in available_sources %}
+          <label class="source-option">
+            <input
+              type="checkbox"
+              name="sources"
+              value="{{ source.key }}"
+              {% if source.key in selected_sources %}checked{% endif %}
+            />
+            <span class="source-option-text">
+              <span class="source-option-title">{{ source.label }}</span>
+              <span class="source-option-note">纳入本次抓取范围</span>
+            </span>
+          </label>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="control-group">
+        <div class="control-group-title">过滤策略</div>
+        <div class="control-stack">
+          <label class="field-block">
+            <span class="field-label">过滤策略</span>
+            <select name="filter_strategy">
+              <option value="loose" {% if selected_filter_strategy|default("standard") == "loose" %}selected{% endif %}>宽松</option>
+              <option value="standard" {% if selected_filter_strategy|default("standard") == "standard" %}selected{% endif %}>标准</option>
+              <option value="strict" {% if selected_filter_strategy|default("standard") == "strict" %}selected{% endif %}>严格</option>
+            </select>
+            <span class="field-note">控制主题命中阈值与保留范围。</span>
+          </label>
+          <label class="field-block">
+            <span class="field-label">去重策略</span>
+            <select name="dedupe_strategy">
+              <option value="conservative" {% if selected_dedupe_strategy|default("standard") == "conservative" %}selected{% endif %}>保守</option>
+              <option value="standard" {% if selected_dedupe_strategy|default("standard") == "standard" %}selected{% endif %}>标准</option>
+              <option value="aggressive" {% if selected_dedupe_strategy|default("standard") == "aggressive" %}selected{% endif %}>激进</option>
+            </select>
+            <span class="field-note">控制重复稿件的压缩力度。</span>
+          </label>
+        </div>
+      </section>
+
+      <section class="control-group">
+        <div class="control-group-title">时间筛选</div>
+        <div class="time-options">
           {% for strategy in available_time_strategies %}
-          <label class="source-chip">
+          <label class="time-option">
             <input
               type="checkbox"
               name="time_strategy"
               value="{{ strategy.key }}"
               {% if strategy.key in selected_time_strategies|default(["source_day"]) %}checked{% endif %}
             />
-            <span>{{ strategy.label }}</span>
+            <span class="time-option-text">
+              <span class="time-option-title">{{ strategy.label }}</span>
+              <span class="time-option-note">参与本次时间窗口判断</span>
+            </span>
           </label>
           {% endfor %}
-        </span>
-      </label>
-      <label class="source-chip">
-        <span>去重策略</span>
-        <select name="dedupe_strategy">
-          <option value="conservative" {% if selected_dedupe_strategy|default("standard") == "conservative" %}selected{% endif %}>保守</option>
-          <option value="standard" {% if selected_dedupe_strategy|default("standard") == "standard" %}selected{% endif %}>标准</option>
-          <option value="aggressive" {% if selected_dedupe_strategy|default("standard") == "aggressive" %}selected{% endif %}>激进</option>
-        </select>
-      </label>
-    </div>
-    <div class="actions">
-      <button type="submit">执行晨报生成</button>
-      <div class="hint">当前预览页仅改变视觉，不改变正式 Dashboard 的模板和行为。</div>
+        </div>
+        <button type="submit">执行晨报生成</button>
+        <div class="hint">预览页增强视觉表达，但保持与正式页相同的字段和提交流程。</div>
+      </section>
     </div>
   </form>
   {% if error_message %}
