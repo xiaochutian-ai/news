@@ -17,6 +17,8 @@
   </div>
   <div class="meta">稿件日期：{{ result.digest_date }} | 来源日期：{{ result.source_date }}</div>
   <div class="meta">本次数据源：{{ result.selected_sources | join(" / ") }}</div>
+  <div class="meta">过滤策略：{{ result.filter_strategy | default("standard") }}</div>
+  <div class="meta">去重策略：{{ result.dedupe_strategy | default("standard") }}</div>
   <div class="meta files">
     产物：
     <a href="{{ result.html_url }}" target="_blank" rel="noopener noreferrer">HTML</a>

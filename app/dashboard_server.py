@@ -37,6 +37,8 @@ def _render_dashboard_template(
     *,
     available_sources: list[dict[str, str]],
     selected_sources: list[str],
+    selected_filter_strategy: str = "standard",
+    selected_dedupe_strategy: str = "standard",
     result: dict[str, object] | None,
     error_message: str,
 ) -> str:
@@ -49,6 +51,8 @@ def _render_dashboard_template(
     return template.render(
         available_sources=available_sources,
         selected_sources=selected_sources,
+        selected_filter_strategy=selected_filter_strategy,
+        selected_dedupe_strategy=selected_dedupe_strategy,
         result=result,
         error_message=error_message,
         stage_sections=STAGE_SECTIONS,
@@ -59,6 +63,8 @@ def build_dashboard_html(
     *,
     available_sources: list[dict[str, str]],
     selected_sources: list[str],
+    selected_filter_strategy: str = "standard",
+    selected_dedupe_strategy: str = "standard",
     result: dict[str, object] | None,
     error_message: str,
 ) -> str:
@@ -66,6 +72,8 @@ def build_dashboard_html(
         "dashboard.html.j2",
         available_sources=available_sources,
         selected_sources=selected_sources,
+        selected_filter_strategy=selected_filter_strategy,
+        selected_dedupe_strategy=selected_dedupe_strategy,
         result=result,
         error_message=error_message,
     )
@@ -75,6 +83,8 @@ def build_dashboard_preview_html(
     *,
     available_sources: list[dict[str, str]],
     selected_sources: list[str],
+    selected_filter_strategy: str = "standard",
+    selected_dedupe_strategy: str = "standard",
     result: dict[str, object] | None,
     error_message: str,
 ) -> str:
@@ -82,6 +92,8 @@ def build_dashboard_preview_html(
         "dashboard_preview_a.html.j2",
         available_sources=available_sources,
         selected_sources=selected_sources,
+        selected_filter_strategy=selected_filter_strategy,
+        selected_dedupe_strategy=selected_dedupe_strategy,
         result=result,
         error_message=error_message,
     )
@@ -121,6 +133,8 @@ class DashboardHandler(BaseHTTPRequestHandler):
         *,
         preview: bool,
         selected_sources: list[str],
+        selected_filter_strategy: str = "standard",
+        selected_dedupe_strategy: str = "standard",
         result: dict[str, object] | None,
         error_message: str,
     ) -> str:
@@ -128,6 +142,8 @@ class DashboardHandler(BaseHTTPRequestHandler):
         return builder(
             available_sources=list_available_sources(),
             selected_sources=selected_sources,
+            selected_filter_strategy=selected_filter_strategy,
+            selected_dedupe_strategy=selected_dedupe_strategy,
             result=result,
             error_message=error_message,
         )
@@ -140,6 +156,8 @@ class DashboardHandler(BaseHTTPRequestHandler):
         html = self._render_page(
             preview=preview,
             selected_sources=self.default_sources,
+            selected_filter_strategy="standard",
+            selected_dedupe_strategy="standard",
             result=None,
             error_message="",
         )
@@ -150,16 +168,24 @@ class DashboardHandler(BaseHTTPRequestHandler):
         body = self.rfile.read(content_length).decode("utf-8")
         form = parse_qs(body)
         selected_sources = form.get("sources") or self.default_sources
+        filter_strategy = (form.get("filter_strategy") or ["standard"])[0]
+        dedupe_strategy = (form.get("dedupe_strategy") or ["standard"])[0]
         error_message = ""
         result: dict[str, object] | None = None
         preview = self.path == PREVIEW_DESIGN_A_RUN_PATH
         try:
-            result = run_digest(selected_sources=selected_sources)
+            result = run_digest(
+                selected_sources=selected_sources,
+                filter_strategy=filter_strategy,
+                dedupe_strategy=dedupe_strategy,
+            )
         except Exception as exc:  # pragma: no cover - first version only surfaces error text
             error_message = str(exc)
         html = self._render_page(
             preview=preview,
             selected_sources=selected_sources,
+            selected_filter_strategy=filter_strategy,
+            selected_dedupe_strategy=dedupe_strategy,
             result=result,
             error_message=error_message,
         )

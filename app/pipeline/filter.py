@@ -48,16 +48,68 @@ NEGATIVE_KEYWORDS = {
 }
 
 
-def filter_minsheng_articles(articles: list[NormalizedArticle]) -> list[NormalizedArticle]:
+def _combined_text(article: NormalizedArticle) -> str:
+    return f"{article.title} {article.summary} {article.content}"
+
+
+def _positive_keyword_hits(article: NormalizedArticle) -> int:
+    combined = _combined_text(article)
+    return sum(1 for keyword in POSITIVE_KEYWORDS if keyword in combined)
+
+
+def _negative_keyword_hits(article: NormalizedArticle) -> int:
+    combined = _combined_text(article)
+    return sum(1 for keyword in NEGATIVE_KEYWORDS if keyword in combined)
+
+
+def _filter_loose_articles(articles: list[NormalizedArticle]) -> list[NormalizedArticle]:
     filtered: list[NormalizedArticle] = []
     for article in articles:
         if any(tag in POSITIVE_TAGS for tag in article.tags):
             filtered.append(article)
             continue
-        combined = f"{article.title} {article.summary} {article.content}"
-        if any(keyword in combined for keyword in POSITIVE_KEYWORDS):
+        if _positive_keyword_hits(article) > 0:
+            filtered.append(article)
+    return filtered
+
+
+def _filter_standard_articles(articles: list[NormalizedArticle]) -> list[NormalizedArticle]:
+    filtered: list[NormalizedArticle] = []
+    for article in articles:
+        if any(tag in POSITIVE_TAGS for tag in article.tags):
             filtered.append(article)
             continue
-        if any(keyword in combined for keyword in NEGATIVE_KEYWORDS):
+        if _positive_keyword_hits(article) > 0:
+            filtered.append(article)
+            continue
+        if _negative_keyword_hits(article) > 0:
             continue
     return filtered
+
+
+def _filter_strict_articles(articles: list[NormalizedArticle]) -> list[NormalizedArticle]:
+    filtered: list[NormalizedArticle] = []
+    for article in articles:
+        if _negative_keyword_hits(article) > 0:
+            continue
+        if any(tag in POSITIVE_TAGS for tag in article.tags):
+            filtered.append(article)
+            continue
+        if _positive_keyword_hits(article) >= 2:
+            filtered.append(article)
+    return filtered
+
+
+def filter_articles(
+    articles: list[NormalizedArticle],
+    strategy: str = "standard",
+) -> list[NormalizedArticle]:
+    if strategy == "loose":
+        return _filter_loose_articles(articles)
+    if strategy == "strict":
+        return _filter_strict_articles(articles)
+    return _filter_standard_articles(articles)
+
+
+def filter_minsheng_articles(articles: list[NormalizedArticle]) -> list[NormalizedArticle]:
+    return filter_articles(articles, strategy="standard")

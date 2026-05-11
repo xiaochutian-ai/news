@@ -40,6 +40,11 @@
         </div>
       </div>
       <div class="brief-card">
+        <div class="brief-label">策略</div>
+        <div>过滤策略：{{ result.filter_strategy | default("standard") }}</div>
+        <div>去重策略：{{ result.dedupe_strategy | default("standard") }}</div>
+      </div>
+      <div class="brief-card">
         <div class="brief-label">产物入口</div>
         <div class="artifact-links">
           <a href="{{ result.html_url }}" target="_blank" rel="noopener noreferrer">打开 HTML 产物</a>

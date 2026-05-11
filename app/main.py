@@ -10,7 +10,7 @@ from app.models import DigestItem, NormalizedArticle, RawArticle
 from app.pipeline.dedupe import deduplicate_articles
 from app.pipeline.draft import build_digest_draft
 from app.pipeline.fetch import normalize_articles
-from app.pipeline.filter import filter_minsheng_articles
+from app.pipeline.filter import filter_articles
 from app.pipeline.publish import publish_digest
 from app.pipeline.score import score_articles
 from app.render.html_renderer import render_digest_html
@@ -39,6 +39,8 @@ def _serialize_article(item: RawArticle | NormalizedArticle | DigestItem) -> dic
 def run_digest(
     digest_date: str | None = None,
     selected_sources: list[str] | None = None,
+    filter_strategy: str = "standard",
+    dedupe_strategy: str = "standard",
 ) -> dict[str, object]:
     config = AppConfig()
     config.ensure_directories()
@@ -50,9 +52,9 @@ def run_digest(
         raw_articles.extend(adapter.fetch(ctx["source_day_compact"]))
 
     normalized = normalize_articles(raw_articles)
-    filtered = filter_minsheng_articles(normalized)
+    filtered = filter_articles(normalized, strategy=filter_strategy)
     scored = score_articles(filtered)
-    deduped = deduplicate_articles(scored)
+    deduped = deduplicate_articles(scored, strategy=dedupe_strategy)
     fresh_articles = [
         article
         for article in deduped
@@ -87,6 +89,8 @@ def run_digest(
         "digest_date": draft.digest_date,
         "source_date": ctx["source_date"],
         "selected_sources": selected_sources or [adapter.source_name for adapter in build_source_adapters(config)],
+        "filter_strategy": filter_strategy,
+        "dedupe_strategy": dedupe_strategy,
         "raw_count": len(raw_articles),
         "filtered_count": len(filtered),
         "selected_count": len(chosen),

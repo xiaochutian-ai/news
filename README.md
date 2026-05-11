@@ -14,6 +14,56 @@ python3 -m pip install -r app/requirements.txt
 python3 -m app.main digest
 ```
 
+## 运行本地服务
+
+当前项目的本地服务入口是 Dashboard 服务，用于在浏览器中选择数据源、触发晨报生成并查看产物明细。
+
+### 启动服务
+
+```bash
+python3 -m pip install -r app/requirements.txt
+python3 -m app.dashboard_server
+```
+
+如果希望一键启动，并在端口被占用时自动先杀后起，可以直接执行：
+
+```bash
+./start_dashboard.sh
+```
+
+启动后终端会输出：
+
+```text
+dashboard=http://127.0.0.1:8000/
+```
+
+默认访问地址：
+
+- Dashboard 首页：`http://127.0.0.1:8000/`
+- 设计预览页：`http://127.0.0.1:8000/preview/design-a`
+
+### 自定义端口
+
+如果 `8000` 端口已被占用，可以改用其他端口启动：
+
+```bash
+python3 -c "from app.dashboard_server import serve_dashboard; serve_dashboard(port=8001)"
+```
+
+或者：
+
+```bash
+PORT=8001 ./start_dashboard.sh
+```
+
+### 服务能力
+
+- 勾选数据源并执行晨报生成
+- 选择过滤策略：`宽松 / 标准 / 严格`
+- 选择去重策略：`保守 / 标准 / 激进`
+- 查看 `Raw / Filtered / Deduped / Chosen` 四阶段明细
+- 直接访问生成的 HTML/JSON 产物
+
 ## 目录
 
 - `app/`: 业务代码
