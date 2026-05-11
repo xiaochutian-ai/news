@@ -318,6 +318,25 @@
       grid-template-columns: 1.15fr 0.85fr;
       gap: 18px;
     }
+    .summary-grid-balanced {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-items: stretch;
+    }
+    .summary-card {
+      padding: 18px;
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(12, 31, 54, 0.95), rgba(8, 18, 31, 0.95));
+      border: 1px solid rgba(126, 179, 255, 0.16);
+      display: grid;
+      gap: 14px;
+      align-content: start;
+      min-height: 100%;
+    }
+    .summary-card-title {
+      color: #f0f7ff;
+      font-size: 15px;
+      font-weight: 700;
+    }
     .summary-meta-card {
       padding: 18px;
       border-radius: 18px;
@@ -360,6 +379,9 @@
       grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 14px;
     }
+    .stats-balanced {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
     .stat {
       padding: 18px;
       border-radius: 18px;
@@ -386,6 +408,38 @@
     .summary-side {
       display: grid;
       gap: 14px;
+    }
+    .summary-source-badges {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+    .summary-source-badge {
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(125, 139, 255, 0.12);
+      border: 1px solid rgba(125, 139, 255, 0.22);
+      color: #d8ddff;
+      font-size: 13px;
+    }
+    .summary-conversion-list {
+      display: grid;
+      gap: 12px;
+    }
+    .summary-conversion-item {
+      padding: 14px;
+      border-radius: 16px;
+      background: rgba(10, 22, 39, 0.82);
+      border: 1px solid rgba(126, 179, 255, 0.14);
+      display: grid;
+      gap: 6px;
+    }
+    .summary-conversion-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: #f0f7ff;
+      letter-spacing: -0.03em;
     }
     .brief-card {
       padding: 18px;
@@ -456,6 +510,7 @@
     .stage-status-rail {
       display: grid;
       gap: 10px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
     }
     .stage-status-item,
     .stage-status-button {
@@ -490,10 +545,7 @@
       font-size: 11px;
       line-height: 1.45;
     }
-    .stage-compare-track {
-      display: grid;
-      gap: 14px;
-    }
+    .stage-compare-track { display: block; }
     .stage-compare-pair {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -698,7 +750,8 @@
       .stage-grid,
       .control-layout,
       .stage-compare-shell,
-      .stage-compare-pair { grid-template-columns: 1fr; }
+      .stage-compare-pair,
+      .stage-status-rail { grid-template-columns: 1fr; }
       .stats { grid-template-columns: 1fr; }
     }
   </style>

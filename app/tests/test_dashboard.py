@@ -197,6 +197,133 @@ def test_build_dashboard_html_defaults_to_filtered_vs_deduped_compare() -> None:
     assert "展开摘要" in html
 
 
+def test_build_dashboard_html_stage_details_render_only_current_pair() -> None:
+    html = build_dashboard_html(
+        available_sources=[{"key": "xinhua", "label": "新华社"}],
+        selected_sources=["xinhua"],
+        result={
+            "digest_date": "2026-05-11",
+            "source_date": "2026-05-10",
+            "selected_sources": ["xinhua"],
+            "filter_strategy": "standard",
+            "time_strategies": ["source_day"],
+            "dedupe_strategy": "standard",
+            "raw_count": 3,
+            "filtered_count": 2,
+            "selected_count": 1,
+            "html_path": "output/drafts/a.html",
+            "json_path": "output/drafts/a.json",
+            "html_url": "/artifacts/output/drafts/a.html",
+            "json_url": "/artifacts/output/drafts/a.json",
+            "stages": {
+                "raw_articles": [],
+                "filtered_articles": [
+                    {
+                        "title": "保留文章",
+                        "source": "xinhua",
+                        "url": "https://example.com/a",
+                        "summary": "摘要A",
+                        "score": 91.0,
+                        "tags": ["民生"],
+                        "published_at": "2026-05-10 08:00:00",
+                    },
+                    {
+                        "title": "淘汰文章",
+                        "source": "xinhua",
+                        "url": "https://example.com/b",
+                        "summary": "摘要B",
+                        "score": 88.0,
+                        "tags": ["民生"],
+                        "published_at": "2026-05-10 08:10:00",
+                    },
+                ],
+                "deduped_articles": [
+                    {
+                        "title": "保留文章",
+                        "source": "xinhua",
+                        "url": "https://example.com/a",
+                        "summary": "摘要A",
+                        "score": 91.0,
+                        "tags": ["民生"],
+                        "published_at": "2026-05-10 08:00:00",
+                    }
+                ],
+                "chosen_articles": [],
+            },
+        },
+        error_message="",
+    )
+
+    assert html.count('data-stage-pair=') == 1
+    assert "保留文章" in html
+    assert "淘汰文章" in html
+    assert "当前阶段通过数" in html
+    assert "当前阶段淘汰数" in html
+
+
+def test_build_dashboard_html_right_panel_shows_intersection_not_full_current_stage() -> None:
+    html = build_dashboard_html(
+        available_sources=[{"key": "xinhua", "label": "新华社"}],
+        selected_sources=["xinhua"],
+        result={
+            "digest_date": "2026-05-11",
+            "source_date": "2026-05-10",
+            "selected_sources": ["xinhua"],
+            "filter_strategy": "standard",
+            "time_strategies": ["source_day"],
+            "dedupe_strategy": "standard",
+            "raw_count": 4,
+            "filtered_count": 2,
+            "selected_count": 1,
+            "html_path": "output/drafts/a.html",
+            "json_path": "output/drafts/a.json",
+            "html_url": "/artifacts/output/drafts/a.html",
+            "json_url": "/artifacts/output/drafts/a.json",
+            "stages": {
+                "raw_articles": [],
+                "filtered_articles": [
+                    {
+                        "title": "左栏命中",
+                        "source": "xinhua",
+                        "url": "https://example.com/a",
+                        "summary": "摘要A",
+                        "score": 91.0,
+                        "tags": [],
+                        "published_at": "2026-05-10 08:00:00",
+                    }
+                ],
+                "deduped_articles": [
+                    {
+                        "title": "左栏命中",
+                        "source": "xinhua",
+                        "url": "https://example.com/a",
+                        "summary": "摘要A",
+                        "score": 91.0,
+                        "tags": [],
+                        "published_at": "2026-05-10 08:00:00",
+                    },
+                    {
+                        "title": "不应单独出现",
+                        "source": "cctv",
+                        "url": "https://example.com/extra",
+                        "summary": "摘要X",
+                        "score": 93.0,
+                        "tags": [],
+                        "published_at": "2026-05-10 08:20:00",
+                    },
+                ],
+                "chosen_articles": [],
+            },
+        },
+        error_message="",
+    )
+
+    visible_pair_html = html.split('<script type="application/json" class="stage-compare-data">')[0]
+
+    assert "左栏命中" in visible_pair_html
+    assert "不应单独出现" not in visible_pair_html
+
+
 def test_build_dashboard_html_uses_three_child_sections() -> None:
     html = build_dashboard_html(
         available_sources=[{"key": "xinhua", "label": "新华社"}],
@@ -294,6 +421,74 @@ def test_build_dashboard_html_summary_keeps_only_metrics_and_run_metadata() -> N
     assert "时间策略" in html
     assert "去重策略" in html
     assert "/artifacts/output/drafts/a.html" in html
+
+
+def test_build_dashboard_html_summary_uses_four_balanced_sections() -> None:
+    html = build_dashboard_html(
+        available_sources=[{"key": "xinhua", "label": "新华社"}],
+        selected_sources=["xinhua"],
+        result={
+            "digest_date": "2026-05-11",
+            "source_date": "2026-05-10",
+            "selected_sources": ["people_daily", "people_app", "cctv", "xinhua"],
+            "filter_strategy": "strict",
+            "time_strategies": ["source_day", "source_window"],
+            "dedupe_strategy": "aggressive",
+            "raw_count": 111,
+            "filtered_count": 7,
+            "selected_count": 7,
+            "html_path": "output/drafts/a.html",
+            "json_path": "output/drafts/a.json",
+            "html_url": "/artifacts/output/drafts/a.html",
+            "json_url": "/artifacts/output/drafts/a.json",
+            "stages": {
+                "raw_articles": [],
+                "filtered_articles": [],
+                "deduped_articles": [],
+                "chosen_articles": [],
+            },
+        },
+        error_message="",
+    )
+
+    assert "核心统计" in html
+    assert "阶段转化" in html
+    assert "运行配置" in html
+    assert "产物入口" in html
+    assert "people_daily" in html
+
+
+def test_build_dashboard_html_summary_uses_badges_for_sources_and_split_cards() -> None:
+    html = build_dashboard_html(
+        available_sources=[{"key": "xinhua", "label": "新华社"}],
+        selected_sources=["xinhua"],
+        result={
+            "digest_date": "2026-05-11",
+            "source_date": "2026-05-10",
+            "selected_sources": ["people_daily", "people_app", "cctv", "xinhua"],
+            "filter_strategy": "strict",
+            "time_strategies": ["source_day", "source_window"],
+            "dedupe_strategy": "aggressive",
+            "raw_count": 111,
+            "filtered_count": 7,
+            "selected_count": 7,
+            "html_path": "output/drafts/a.html",
+            "json_path": "output/drafts/a.json",
+            "html_url": "/artifacts/output/drafts/a.html",
+            "json_url": "/artifacts/output/drafts/a.json",
+            "stages": {
+                "raw_articles": [],
+                "filtered_articles": [],
+                "deduped_articles": [],
+                "chosen_articles": [],
+            },
+        },
+        error_message="",
+    )
+
+    assert 'class="summary-source-badges"' in html
+    assert "原始 -> 过滤后" in html
+    assert "过滤后 -> 最终入选" in html
 
 
 def test_artifact_helpers_build_and_resolve_paths() -> None:
@@ -486,6 +681,67 @@ def test_build_dashboard_html_stage_details_include_toggle_script_and_collapsibl
     assert "展开摘要" in html
 
 
+def test_build_dashboard_html_stage_details_report_passed_and_removed_counts() -> None:
+    html = build_dashboard_html(
+        available_sources=[{"key": "xinhua", "label": "新华社"}],
+        selected_sources=["xinhua"],
+        result={
+            "digest_date": "2026-05-11",
+            "source_date": "2026-05-10",
+            "selected_sources": ["xinhua"],
+            "filter_strategy": "standard",
+            "time_strategies": ["source_day"],
+            "dedupe_strategy": "standard",
+            "raw_count": 3,
+            "filtered_count": 2,
+            "selected_count": 1,
+            "html_path": "output/drafts/a.html",
+            "json_path": "output/drafts/a.json",
+            "html_url": "/artifacts/output/drafts/a.html",
+            "json_url": "/artifacts/output/drafts/a.json",
+            "stages": {
+                "raw_articles": [],
+                "filtered_articles": [
+                    {
+                        "title": "文章 A",
+                        "source": "xinhua",
+                        "url": "https://example.com/a",
+                        "summary": "摘要A",
+                        "score": 91.0,
+                        "tags": [],
+                        "published_at": "2026-05-10 08:00:00",
+                    },
+                    {
+                        "title": "文章 B",
+                        "source": "xinhua",
+                        "url": "https://example.com/b",
+                        "summary": "摘要B",
+                        "score": 88.0,
+                        "tags": [],
+                        "published_at": "2026-05-10 08:10:00",
+                    },
+                ],
+                "deduped_articles": [
+                    {
+                        "title": "文章 A",
+                        "source": "xinhua",
+                        "url": "https://example.com/a",
+                        "summary": "摘要A",
+                        "score": 91.0,
+                        "tags": [],
+                        "published_at": "2026-05-10 08:00:00",
+                    }
+                ],
+                "chosen_articles": [],
+            },
+        },
+        error_message="",
+    )
+
+    assert "当前阶段通过数：1" in html
+    assert "当前阶段淘汰数：1" in html
+
+
 def test_build_dashboard_preview_html_only_shows_top_three_per_group_before_secondary_expand() -> None:
     html = build_dashboard_preview_html(
         available_sources=[{"key": "xinhua", "label": "新华社"}],
@@ -520,6 +776,69 @@ def test_build_dashboard_preview_html_only_shows_top_three_per_group_before_seco
     assert 'data-stage="chosen_articles"' in html
     assert "文章1" in html
     assert "展开摘要" in html
+
+
+def test_build_dashboard_preview_html_uses_single_pair_intersection_semantics() -> None:
+    html = build_dashboard_preview_html(
+        available_sources=[{"key": "xinhua", "label": "新华社"}],
+        selected_sources=["xinhua"],
+        result={
+            "digest_date": "2026-05-11",
+            "source_date": "2026-05-10",
+            "selected_sources": ["xinhua"],
+            "filter_strategy": "standard",
+            "time_strategies": ["source_day"],
+            "dedupe_strategy": "standard",
+            "raw_count": 3,
+            "filtered_count": 2,
+            "selected_count": 1,
+            "html_path": "output/drafts/a.html",
+            "json_path": "output/drafts/a.json",
+            "html_url": "/artifacts/output/drafts/a.html",
+            "json_url": "/artifacts/output/drafts/a.json",
+            "stages": {
+                "raw_articles": [],
+                "filtered_articles": [
+                    {
+                        "title": "文章 A",
+                        "source": "xinhua",
+                        "url": "https://example.com/a",
+                        "summary": "摘要A",
+                        "score": 91.0,
+                        "tags": [],
+                        "published_at": "2026-05-10 08:00:00",
+                    },
+                    {
+                        "title": "文章 B",
+                        "source": "xinhua",
+                        "url": "https://example.com/b",
+                        "summary": "摘要B",
+                        "score": 88.0,
+                        "tags": [],
+                        "published_at": "2026-05-10 08:10:00",
+                    },
+                ],
+                "deduped_articles": [
+                    {
+                        "title": "文章 A",
+                        "source": "xinhua",
+                        "url": "https://example.com/a",
+                        "summary": "摘要A",
+                        "score": 91.0,
+                        "tags": [],
+                        "published_at": "2026-05-10 08:00:00",
+                    }
+                ],
+                "chosen_articles": [],
+            },
+        },
+        error_message="",
+    )
+
+    assert html.count('data-stage-pair=') == 1
+    assert "当前阶段通过数" in html
+    assert "核心统计" in html
+    assert "产物入口" in html
 
 
 def test_dashboard_handler_posts_selected_strategies_to_run_digest() -> None:

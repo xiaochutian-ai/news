@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import mimetypes
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -19,6 +20,45 @@ STAGE_SECTIONS = [
     {"key": "deduped_articles", "label": "去重后明细"},
     {"key": "chosen_articles", "label": "最终入选明细"},
 ]
+STAGE_PAIR_OPTIONS = [
+    {
+        "key": "filtered_articles",
+        "button_label": "过滤后明细",
+        "button_meta": "查看原始候选与过滤后",
+        "previous_key": "raw_articles",
+        "previous_label": "原始候选明细",
+        "previous_hint": "过滤前候选",
+        "current_key": "filtered_articles",
+        "current_label": "过滤后明细",
+        "current_hint": "通过主题过滤",
+        "status_copy": "通过主题过滤",
+    },
+    {
+        "key": "deduped_articles",
+        "button_label": "去重后明细",
+        "button_meta": "默认对比阶段",
+        "previous_key": "filtered_articles",
+        "previous_label": "过滤后明细",
+        "previous_hint": "去重前结果",
+        "current_key": "deduped_articles",
+        "current_label": "去重后明细",
+        "current_hint": "通过去重校验",
+        "status_copy": "通过去重校验",
+    },
+    {
+        "key": "chosen_articles",
+        "button_label": "最终入选明细",
+        "button_meta": "查看最终入选结果",
+        "previous_key": "deduped_articles",
+        "previous_label": "去重后明细",
+        "previous_hint": "入选前候选",
+        "current_key": "chosen_articles",
+        "current_label": "最终入选明细",
+        "current_hint": "进入最终晨报草稿",
+        "status_copy": "进入最终晨报草稿",
+    },
+]
+DEFAULT_STAGE_PAIR_KEY = "deduped_articles"
 PREVIEW_DESIGN_A_PATH = "/preview/design-a"
 PREVIEW_DESIGN_A_RUN_PATH = "/preview/design-a/run"
 
@@ -31,6 +71,45 @@ def build_artifact_url(path: str | Path) -> str:
 def resolve_artifact_path(request_path: str) -> Path:
     relative = unquote(request_path.removeprefix("/artifacts/")).lstrip("/")
     return Path(relative)
+
+
+def _article_identity(article: dict[str, object]) -> str:
+    url = str(article.get("url") or "").strip()
+    if url:
+        return url
+    title = str(article.get("title") or "").strip()
+    source = str(article.get("source") or "").strip()
+    return f"{title}::{source}"
+
+
+def _build_stage_compare_payload(result: dict[str, object] | None) -> tuple[list[dict[str, object]], dict[str, object] | None]:
+    if not result:
+        return STAGE_PAIR_OPTIONS, None
+
+    stages = result.get("stages", {})
+    if not isinstance(stages, dict):
+        return STAGE_PAIR_OPTIONS, None
+
+    stage_pairs: list[dict[str, object]] = []
+    active_pair: dict[str, object] | None = None
+    for option in STAGE_PAIR_OPTIONS:
+        previous_items = list(stages.get(option["previous_key"], []))
+        current_items = list(stages.get(option["current_key"], []))
+        current_keys = {_article_identity(article) for article in current_items}
+        passed_items = [article for article in previous_items if _article_identity(article) in current_keys]
+        pair_payload = {
+            **option,
+            "previous_items": previous_items,
+            "passed_items": passed_items,
+            "previous_count": len(previous_items),
+            "passed_count": len(passed_items),
+            "removed_count": max(len(previous_items) - len(passed_items), 0),
+        }
+        stage_pairs.append(pair_payload)
+        if option["key"] == DEFAULT_STAGE_PAIR_KEY:
+            active_pair = pair_payload
+
+    return stage_pairs, active_pair
 
 
 def _render_dashboard_template(
@@ -49,6 +128,7 @@ def _render_dashboard_template(
         loader=FileSystemLoader(str(templates_dir)),
         autoescape=select_autoescape(["html", "xml"]),
     )
+    stage_compare_options, active_stage_compare = _build_stage_compare_payload(result)
     template = environment.get_template(template_name)
     return template.render(
         available_sources=available_sources,
@@ -60,6 +140,10 @@ def _render_dashboard_template(
         result=result,
         error_message=error_message,
         stage_sections=STAGE_SECTIONS,
+        stage_compare_options=stage_compare_options,
+        active_stage_compare=active_stage_compare,
+        default_stage_pair_key=DEFAULT_STAGE_PAIR_KEY,
+        stage_compare_json=json.dumps(stage_compare_options, ensure_ascii=False),
     )
 
 

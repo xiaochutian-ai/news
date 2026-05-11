@@ -4,78 +4,37 @@
       <div class="section-kicker">Stage Compare</div>
       <h2>生成详情</h2>
     </div>
-    <div class="hint">默认对比过滤后与去重后。切换阶段时，始终展示前一阶段和当前阶段的并排对照。</div>
+    <div class="hint">一次只展示当前选中的一组阶段对照。右栏只保留左栏条目中进入下一阶段的结果。</div>
   </div>
   {% if result %}
-  {% set stage_pairs = [
-    {
-      "key": "filtered_articles",
-      "button_label": "过滤后明细",
-      "button_meta": "查看原始候选与过滤后",
-      "previous_key": "raw_articles",
-      "previous_label": "原始候选明细",
-      "previous_hint": "过滤前候选",
-      "current_key": "filtered_articles",
-      "current_label": "过滤后明细",
-      "current_hint": "默认展示保留结果",
-    },
-    {
-      "key": "deduped_articles",
-      "button_label": "去重后明细",
-      "button_meta": "默认对比阶段",
-      "previous_key": "filtered_articles",
-      "previous_label": "过滤后明细",
-      "previous_hint": "对比去重前结果",
-      "current_key": "deduped_articles",
-      "current_label": "去重后明细",
-      "current_hint": "状态优先高亮",
-    },
-    {
-      "key": "chosen_articles",
-      "button_label": "最终入选明细",
-      "button_meta": "查看最终入选结果",
-      "previous_key": "deduped_articles",
-      "previous_label": "去重后明细",
-      "previous_hint": "入选前候选",
-      "current_key": "chosen_articles",
-      "current_label": "最终入选明细",
-      "current_hint": "落入晨报草稿",
-    },
-  ] %}
-  <div class="stage-compare-shell" data-default-stage="deduped_articles">
+  <div class="stage-compare-shell" data-default-stage="{{ default_stage_pair_key }}">
     <div class="stage-status-rail">
-      <div class="stage-status-item">
-        <span class="stage-status-name">原始候选明细</span>
-        <span class="stage-status-meta">数量：{{ result.stages["raw_articles"] | length }} | 作为阶段对照起点</span>
-      </div>
-      {% for pair in stage_pairs %}
+      {% for pair in stage_compare_options %}
       <button
         type="button"
-        class="stage-status-button{% if pair.key == 'deduped_articles' %} is-active{% endif %}"
+        class="stage-status-button{% if pair.key == default_stage_pair_key %} is-active{% endif %}"
         data-stage="{{ pair.key }}"
         onclick="switchStageCompare(this.closest('.stage-compare-shell'), '{{ pair.key }}')"
       >
         <span class="stage-status-name">{{ pair.button_label }}</span>
-        <span class="stage-status-meta">数量：{{ result.stages[pair.current_key] | length }} | {{ pair.button_meta }}</span>
+        <span class="stage-status-meta">数量：{{ pair.passed_count }} | {{ pair.button_meta }}</span>
       </button>
       {% endfor %}
     </div>
     <div class="stage-compare-track">
-      {% for pair in stage_pairs %}
-      {% set previous_items = result.stages[pair.previous_key] %}
-      {% set current_items = result.stages[pair.current_key] %}
-      <div class="stage-compare-pair" data-stage-pair="{{ pair.key }}" {% if pair.key != "deduped_articles" %}hidden{% endif %}>
+      {% if active_stage_compare %}
+      <div class="stage-compare-pair" data-stage-pair="{{ active_stage_compare.key }}">
         <section class="stage-compare-panel" data-role="previous">
           <div class="stage-panel-head">
             <div>
-              <h3>{{ pair.previous_label }}</h3>
-              <div class="stage-panel-count">{{ pair.previous_hint }}</div>
+              <h3>{{ active_stage_compare.previous_label }}</h3>
+              <div class="stage-panel-count">{{ active_stage_compare.previous_hint }}</div>
             </div>
-            <div class="stage-panel-count">数量：{{ previous_items | length }}</div>
+            <div class="stage-panel-count">总条数：{{ active_stage_compare.previous_count }}</div>
           </div>
-          {% if previous_items %}
+          {% if active_stage_compare.previous_items %}
           <div class="article-stack">
-            {% for article in previous_items %}
+            {% for article in active_stage_compare.previous_items %}
             <article class="article-item">
               <a href="{{ article.url }}" target="_blank" rel="noopener noreferrer">{{ article.title }}</a>
               <div class="article-meta">
@@ -100,21 +59,22 @@
             {% endfor %}
           </div>
           {% else %}
-          <div class="empty">当前对照的前一阶段暂无数据。</div>
+          <div class="empty">当前阶段的前一阶段暂无数据。</div>
           {% endif %}
         </section>
         <section class="stage-compare-panel" data-role="current">
           <div class="stage-panel-head">
             <div>
-              <h3>{{ pair.current_label }}</h3>
-              <div class="stage-panel-count">{{ pair.current_hint }}</div>
+              <h3>{{ active_stage_compare.current_label }}</h3>
+              <div class="stage-panel-count">{{ active_stage_compare.current_hint }}</div>
             </div>
-            <div class="stage-panel-count">数量：{{ current_items | length }}</div>
+            <div class="stage-panel-count">当前阶段通过数：{{ active_stage_compare.passed_count }}</div>
+            <div class="stage-panel-count">当前阶段淘汰数：{{ active_stage_compare.removed_count }}</div>
           </div>
-          {% if current_items %}
+          {% if active_stage_compare.passed_items %}
           <div class="article-stack">
-            {% for article in current_items %}
-            <article class="article-item{% if pair.key != 'filtered_articles' and loop.index > (current_items | length) %} is-removed{% endif %}">
+            {% for article in active_stage_compare.passed_items %}
+            <article class="article-item">
               <a href="{{ article.url }}" target="_blank" rel="noopener noreferrer">{{ article.title }}</a>
               <div class="article-meta">
                 来源：{{ article.source }}
@@ -122,13 +82,7 @@
                 {% if article.score is not none %} | 分数：{{ "%.2f"|format(article.score) }}{% endif %}
               </div>
               <div class="article-meta">
-                {% if pair.key == "deduped_articles" %}
-                保留原因：同主题候选中重复度更低，进入去重后集合
-                {% elif pair.key == "chosen_articles" %}
-                保留原因：进入最终晨报草稿
-                {% else %}
-                保留原因：通过主题相关性过滤
-                {% endif %}
+                保留原因：{{ active_stage_compare.status_copy }}
               </div>
               {% if article.tags %}
               <div class="tag-list">
@@ -145,35 +99,91 @@
               {% endif %}
             </article>
             {% endfor %}
-            {% if pair.key == "deduped_articles" and previous_items | length > current_items | length %}
-            <article class="article-item is-removed">
-              <div><strong>重复候选已折叠</strong></div>
-              <div class="article-meta">已从过滤后集合移除 {{ (previous_items | length) - (current_items | length) }} 条高度重复内容。</div>
-            </article>
-            {% endif %}
           </div>
           {% else %}
-          <div class="empty">当前阶段暂无数据。</div>
+          <div class="empty">当前组中没有条目进入下一阶段。</div>
           {% endif %}
         </section>
       </div>
-      {% endfor %}
+      {% endif %}
     </div>
   </div>
+  <script type="application/json" class="stage-compare-data">{{ stage_compare_json | safe }}</script>
   {% else %}
   <div class="empty">还没有执行记录。执行一次晨报生成后，这里会默认展示过滤后与去重后的阶段对照。</div>
   {% endif %}
 </div>
 <script>
+function escapeStageHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function renderStageArticle(article, statusCopy) {
+  const tags = (article.tags || [])
+    .map((tag) => `<span class="tag">${escapeStageHtml(tag)}</span>`)
+    .join("");
+  const summary = article.summary
+    ? `<details class="article-summary-toggle"><summary>展开摘要</summary><div class="article-summary-body">${escapeStageHtml(article.summary)}</div></details>`
+    : "";
+  const metaParts = [`来源：${escapeStageHtml(article.source || "")}`];
+  if (article.published_at) metaParts.push(`时间：${escapeStageHtml(article.published_at)}`);
+  if (article.score !== null && article.score !== undefined) metaParts.push(`分数：${Number(article.score).toFixed(2)}`);
+  const status = statusCopy ? `<div class="article-meta">保留原因：${escapeStageHtml(statusCopy)}</div>` : "";
+  return `
+    <article class="article-item">
+      <a href="${escapeStageHtml(article.url || "#")}" target="_blank" rel="noopener noreferrer">${escapeStageHtml(article.title || "")}</a>
+      <div class="article-meta">${metaParts.join(" | ")}</div>
+      ${status}
+      ${tags ? `<div class="tag-list">${tags}</div>` : ""}
+      ${summary}
+    </article>
+  `;
+}
+
 function switchStageCompare(container, stageKey) {
   const buttons = container.querySelectorAll("[data-stage]");
-  const panels = container.querySelectorAll("[data-stage-pair]");
+  const dataEl = container.querySelector(".stage-compare-data");
+  const pairEl = container.querySelector("[data-stage-pair]");
+  if (!dataEl || !pairEl) return;
+  const stagePairs = JSON.parse(dataEl.textContent || "[]");
+  const pair = stagePairs.find((item) => item.key === stageKey);
+  if (!pair) return;
   buttons.forEach((button) => {
     button.classList.toggle("is-active", button.dataset.stage === stageKey);
   });
-  panels.forEach((panel) => {
-    panel.hidden = panel.dataset.stagePair !== stageKey;
-  });
+  pairEl.dataset.stagePair = stageKey;
+  pairEl.innerHTML = `
+    <section class="stage-compare-panel" data-role="previous">
+      <div class="stage-panel-head">
+        <div>
+          <h3>${escapeStageHtml(pair.previous_label)}</h3>
+          <div class="stage-panel-count">${escapeStageHtml(pair.previous_hint)}</div>
+        </div>
+        <div class="stage-panel-count">总条数：${pair.previous_count}</div>
+      </div>
+      ${pair.previous_items.length
+        ? `<div class="article-stack">${pair.previous_items.map((article) => renderStageArticle(article, "")).join("")}</div>`
+        : `<div class="empty">当前阶段的前一阶段暂无数据。</div>`}
+    </section>
+    <section class="stage-compare-panel" data-role="current">
+      <div class="stage-panel-head">
+        <div>
+          <h3>${escapeStageHtml(pair.current_label)}</h3>
+          <div class="stage-panel-count">${escapeStageHtml(pair.current_hint)}</div>
+        </div>
+        <div class="stage-panel-count">当前阶段通过数：${pair.passed_count}</div>
+        <div class="stage-panel-count">当前阶段淘汰数：${pair.removed_count}</div>
+      </div>
+      ${pair.passed_items.length
+        ? `<div class="article-stack">${pair.passed_items.map((article) => renderStageArticle(article, pair.status_copy)).join("")}</div>`
+        : `<div class="empty">当前组中没有条目进入下一阶段。</div>`}
+    </section>
+  `;
 }
 
 document.querySelectorAll(".stage-compare-shell").forEach((container) => {

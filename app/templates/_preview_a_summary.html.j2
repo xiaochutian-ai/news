@@ -4,55 +4,77 @@
       <div class="section-kicker">Signal Snapshot</div>
       <h2>结果摘要</h2>
     </div>
-    <div class="hint">重点呈现每轮执行的信号强度与最终稿件产物。</div>
+    <div class="hint">以四块均衡信息卡呈现关键信号、转化关系、运行配置和产物入口。</div>
   </div>
   {% if result %}
-  <div class="summary-grid">
-    <div class="stats">
-      <div class="stat">
-        <div class="label">原始候选数</div>
-        <div class="value">{{ result.raw_count }}</div>
-        <div class="foot">所有抓取到的候选条目</div>
-      </div>
-      <div class="stat">
-        <div class="label">过滤后数量</div>
-        <div class="value">{{ result.filtered_count }}</div>
-        <div class="foot">命中民生主题后的结果</div>
-      </div>
-      <div class="stat">
-        <div class="label">最终入选数</div>
-        <div class="value">{{ result.selected_count }}</div>
-        <div class="foot">进入晨报草稿的最终条目</div>
-      </div>
-    </div>
-    <div class="summary-side">
-      <div class="brief-card">
-        <div class="brief-label">时间窗口</div>
-        <div>稿件日期：{{ result.digest_date }}</div>
-        <div>来源日期：{{ result.source_date }}</div>
-      </div>
-      <div class="brief-card">
-        <div class="brief-label">本次数据源</div>
-        <div class="source-badges">
-          {% for source in result.selected_sources %}
-          <span class="source-badge">{{ source }}</span>
-          {% endfor %}
+  {% set raw_count = result.raw_count | int %}
+  {% set filtered_count = result.filtered_count | int %}
+  {% set selected_count = result.selected_count | int %}
+  <div class="summary-grid summary-grid-balanced">
+    <section class="summary-card summary-card-metrics">
+      <div class="summary-card-title">核心统计</div>
+      <div class="stats stats-balanced">
+        <div class="stat">
+          <div class="label">原始候选数</div>
+          <div class="value">{{ raw_count }}</div>
+          <div class="foot">所有抓取到的候选条目</div>
+        </div>
+        <div class="stat">
+          <div class="label">过滤后数量</div>
+          <div class="value">{{ filtered_count }}</div>
+          <div class="foot">命中民生主题后的结果</div>
+        </div>
+        <div class="stat">
+          <div class="label">最终入选数</div>
+          <div class="value">{{ selected_count }}</div>
+          <div class="foot">进入晨报草稿的最终条目</div>
         </div>
       </div>
-      <div class="brief-card">
-        <div class="brief-label">运行策略</div>
-        <div>过滤策略：{{ result.filter_strategy | default("standard") }}</div>
-        <div>时间策略：{{ result.time_strategies | default(["source_day"]) | join(" / ") if result.time_strategies else "none" }}</div>
-        <div>去重策略：{{ result.dedupe_strategy | default("standard") }}</div>
-      </div>
-      <div class="brief-card">
-        <div class="brief-label">产物入口</div>
-        <div class="artifact-links">
-          <a href="{{ result.html_url }}" target="_blank" rel="noopener noreferrer">打开 HTML 产物</a>
-          <a href="{{ result.json_url }}" target="_blank" rel="noopener noreferrer">打开 JSON 产物</a>
+    </section>
+    <section class="summary-card summary-card-conversion">
+      <div class="summary-card-title">阶段转化</div>
+      <div class="summary-conversion-list">
+        <div class="summary-conversion-item">
+          <div class="brief-label">原始 -> 过滤后</div>
+          <div class="summary-conversion-value">{{ raw_count }} -> {{ filtered_count }}</div>
+        </div>
+        <div class="summary-conversion-item">
+          <div class="brief-label">过滤后 -> 最终入选</div>
+          <div class="summary-conversion-value">{{ filtered_count }} -> {{ selected_count }}</div>
         </div>
       </div>
-    </div>
+    </section>
+    <section class="summary-card summary-card-config">
+      <div class="summary-card-title">运行配置</div>
+      <div class="summary-side">
+        <div class="brief-card">
+          <div class="brief-label">时间窗口</div>
+          <div>稿件日期：{{ result.digest_date }}</div>
+          <div>来源日期：{{ result.source_date }}</div>
+        </div>
+        <div class="brief-card">
+          <div class="brief-label">本次数据源</div>
+          <div class="summary-source-badges">
+            {% for source in result.selected_sources %}
+            <span class="summary-source-badge">{{ source }}</span>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="brief-card">
+          <div class="brief-label">运行策略</div>
+          <div>过滤策略：{{ result.filter_strategy | default("standard") }}</div>
+          <div>时间策略：{{ result.time_strategies | default(["source_day"]) | join(" / ") if result.time_strategies else "none" }}</div>
+          <div>去重策略：{{ result.dedupe_strategy | default("standard") }}</div>
+        </div>
+      </div>
+    </section>
+    <section class="summary-card summary-card-artifacts">
+      <div class="summary-card-title">产物入口</div>
+      <div class="artifact-links">
+        <a href="{{ result.html_url }}" target="_blank" rel="noopener noreferrer">打开 HTML 产物</a>
+        <a href="{{ result.json_url }}" target="_blank" rel="noopener noreferrer">打开 JSON 产物</a>
+      </div>
+    </section>
   </div>
   {% else %}
   <div class="empty">还没有执行记录。先在上方选择数据源并点击执行，即可看到摘要统计与最终产物入口。</div>
