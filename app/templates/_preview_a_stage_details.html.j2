@@ -4,96 +4,180 @@
       <div class="section-kicker">Stage Intelligence</div>
       <h2>生成详情</h2>
     </div>
-    <div class="hint">阶段视图保留全链路，来源视图帮助你更快判断各信源的实际贡献。</div>
+    <div class="hint">默认聚焦过滤后与去重后的差异。切换阶段时始终展示“前一阶段 + 当前阶段”的并排对照。</div>
   </div>
   {% if result %}
-  <div class="detail-toolbar">
-    <div class="view-chip">阶段总览</div>
-    <div class="view-chip">按来源分组</div>
-    <div class="hint">文章卡片默认压缩显示，展开后可查看完整列表。</div>
-  </div>
-  <div class="stage-grid">
-    {% for stage in stage_sections %}
-    {% set items = result.stages[stage.key] %}
-    <div class="stage-card">
-      <div class="stage-head">
-        <h3>{{ stage.label }}</h3>
-        <div class="stage-count">数量 {{ items | length }}</div>
+  {% set stage_pairs = [
+    {
+      "key": "filtered_articles",
+      "button_label": "过滤后明细",
+      "button_meta": "查看原始候选与过滤后",
+      "previous_key": "raw_articles",
+      "previous_label": "原始候选明细",
+      "previous_hint": "过滤前候选",
+      "current_key": "filtered_articles",
+      "current_label": "过滤后明细",
+      "current_hint": "通过主题过滤",
+    },
+    {
+      "key": "deduped_articles",
+      "button_label": "去重后明细",
+      "button_meta": "默认对比阶段",
+      "previous_key": "filtered_articles",
+      "previous_label": "过滤后明细",
+      "previous_hint": "去重前结果",
+      "current_key": "deduped_articles",
+      "current_label": "去重后明细",
+      "current_hint": "状态优先高亮",
+    },
+    {
+      "key": "chosen_articles",
+      "button_label": "最终入选明细",
+      "button_meta": "查看最终入选结果",
+      "previous_key": "deduped_articles",
+      "previous_label": "去重后明细",
+      "previous_hint": "入选前候选",
+      "current_key": "chosen_articles",
+      "current_label": "最终入选明细",
+      "current_hint": "进入晨报草稿",
+    },
+  ] %}
+  <div class="stage-compare-shell" data-default-stage="deduped_articles">
+    <div class="stage-status-rail">
+      <div class="stage-status-item">
+        <span class="stage-status-name">原始候选明细</span>
+        <span class="stage-status-meta">数量 {{ result.stages["raw_articles"] | length }} | 阶段对照起点</span>
       </div>
-      {% if items %}
-      {% set grouped = {} %}
-      {% for article in items %}
-      {% set _ = grouped.update({article.source: grouped.get(article.source, []) + [article]}) %}
+      {% for pair in stage_pairs %}
+      <button
+        type="button"
+        class="stage-status-button{% if pair.key == 'deduped_articles' %} is-active{% endif %}"
+        data-stage="{{ pair.key }}"
+        onclick="switchStageCompare(this.closest('.stage-compare-shell'), '{{ pair.key }}')"
+      >
+        <span class="stage-status-name">{{ pair.button_label }}</span>
+        <span class="stage-status-meta">数量 {{ result.stages[pair.current_key] | length }} | {{ pair.button_meta }}</span>
+      </button>
       {% endfor %}
-      <details class="stage-details" {% if loop.first %}open{% endif %}>
-        <summary>
-          <span>展开阶段明细</span>
-          <span class="summary-meta">按来源分组</span>
-        </summary>
-        <div class="source-group-grid">
-          {% for source_name, source_items in grouped.items() %}
-          <div class="source-group-card">
-            <div class="source-group-head">
-              <strong>{{ source_name }}</strong>
-              <span>{{ source_items | length }} 条</span>
+    </div>
+    <div class="stage-compare-track">
+      {% for pair in stage_pairs %}
+      {% set previous_items = result.stages[pair.previous_key] %}
+      {% set current_items = result.stages[pair.current_key] %}
+      <div class="stage-compare-pair" data-stage-pair="{{ pair.key }}" {% if pair.key != "deduped_articles" %}hidden{% endif %}>
+        <section class="stage-compare-panel" data-role="previous">
+          <div class="stage-panel-head">
+            <div>
+              <h3>{{ pair.previous_label }}</h3>
+              <div class="stage-panel-count">{{ pair.previous_hint }}</div>
             </div>
-            <div class="article-list compact-list">
-              {% for article in source_items[:3] %}
-              <article class="article-item compact-item">
-                <a href="{{ article.url }}" target="_blank" rel="noopener noreferrer">{{ article.title }}</a>
-                <div class="article-meta">
-                  {% if article.published_at %}{{ article.published_at }}{% endif %}
-                  {% if article.score is not none %} | 分数：{{ "%.2f"|format(article.score) }}{% endif %}
-                </div>
-                <div class="article-summary">{{ article.summary }}</div>
-                {% if article.tags %}
-                <div class="tag-list">
-                  {% for tag in article.tags %}
-                  <span class="tag">{{ tag }}</span>
-                  {% endfor %}
-                </div>
-                {% endif %}
-              </article>
-              {% endfor %}
-            </div>
-            {% if source_items | length > 3 %}
-            <details class="stage-details secondary-details">
-              <summary>
-                <span>展开剩余 {{ (source_items | length) - 3 }} 条</span>
-                <span class="summary-meta">二次展开</span>
-              </summary>
-              <div class="article-list compact-list">
-                {% for article in source_items[3:] %}
-                <article class="article-item compact-item">
-                  <a href="{{ article.url }}" target="_blank" rel="noopener noreferrer">{{ article.title }}</a>
-                  <div class="article-meta">
-                    {% if article.published_at %}{{ article.published_at }}{% endif %}
-                    {% if article.score is not none %} | 分数：{{ "%.2f"|format(article.score) }}{% endif %}
-                  </div>
-                  <div class="article-summary">{{ article.summary }}</div>
-                  {% if article.tags %}
-                  <div class="tag-list">
-                    {% for tag in article.tags %}
-                    <span class="tag">{{ tag }}</span>
-                    {% endfor %}
-                  </div>
-                  {% endif %}
-                </article>
+            <div class="stage-panel-count">数量 {{ previous_items | length }}</div>
+          </div>
+          {% if previous_items %}
+          <div class="article-stack">
+            {% for article in previous_items %}
+            <article class="article-item compact-item">
+              <a href="{{ article.url }}" target="_blank" rel="noopener noreferrer">{{ article.title }}</a>
+              <div class="article-meta">
+                来源：{{ article.source }}
+                {% if article.published_at %} | 时间：{{ article.published_at }}{% endif %}
+                {% if article.score is not none %} | 分数：{{ "%.2f"|format(article.score) }}{% endif %}
+              </div>
+              {% if article.tags %}
+              <div class="tag-list">
+                {% for tag in article.tags %}
+                <span class="tag">{{ tag }}</span>
                 {% endfor %}
               </div>
-            </details>
+              {% endif %}
+              {% if article.summary %}
+              <details class="article-summary-toggle">
+                <summary>展开摘要</summary>
+                <div class="article-summary-body">{{ article.summary }}</div>
+              </details>
+              {% endif %}
+            </article>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="empty">当前对照的前一阶段暂无数据。</div>
+          {% endif %}
+        </section>
+        <section class="stage-compare-panel" data-role="current">
+          <div class="stage-panel-head">
+            <div>
+              <h3>{{ pair.current_label }}</h3>
+              <div class="stage-panel-count">{{ pair.current_hint }}</div>
+            </div>
+            <div class="stage-panel-count">数量 {{ current_items | length }}</div>
+          </div>
+          {% if current_items %}
+          <div class="article-stack">
+            {% for article in current_items %}
+            <article class="article-item compact-item">
+              <a href="{{ article.url }}" target="_blank" rel="noopener noreferrer">{{ article.title }}</a>
+              <div class="article-meta">
+                来源：{{ article.source }}
+                {% if article.published_at %} | 时间：{{ article.published_at }}{% endif %}
+                {% if article.score is not none %} | 分数：{{ "%.2f"|format(article.score) }}{% endif %}
+              </div>
+              <div class="article-meta">
+                {% if pair.key == "deduped_articles" %}
+                保留原因：相较重复候选，保留了更稳定的一条
+                {% elif pair.key == "chosen_articles" %}
+                保留原因：进入最终晨报草稿
+                {% else %}
+                保留原因：通过主题过滤
+                {% endif %}
+              </div>
+              {% if article.tags %}
+              <div class="tag-list">
+                {% for tag in article.tags %}
+                <span class="tag">{{ tag }}</span>
+                {% endfor %}
+              </div>
+              {% endif %}
+              {% if article.summary %}
+              <details class="article-summary-toggle">
+                <summary>展开摘要</summary>
+                <div class="article-summary-body">{{ article.summary }}</div>
+              </details>
+              {% endif %}
+            </article>
+            {% endfor %}
+            {% if pair.key == "deduped_articles" and previous_items | length > current_items | length %}
+            <article class="article-item compact-item is-removed">
+              <div><strong>重复候选已折叠</strong></div>
+              <div class="article-meta">已从过滤后集合移除 {{ (previous_items | length) - (current_items | length) }} 条高度重复内容。</div>
+            </article>
             {% endif %}
           </div>
-          {% endfor %}
-        </div>
-      </details>
-      {% else %}
-      <div class="empty">当前阶段暂无数据。</div>
-      {% endif %}
+          {% else %}
+          <div class="empty">当前阶段暂无数据。</div>
+          {% endif %}
+        </section>
+      </div>
+      {% endfor %}
     </div>
-    {% endfor %}
   </div>
   {% else %}
-  <div class="empty">这里会显示原始候选、过滤后、去重后和最终入选四个阶段的文章明细。</div>
+  <div class="empty">这里会默认展示过滤后与去重后的阶段对照，并支持切换到最终入选视图。</div>
   {% endif %}
 </section>
+<script>
+function switchStageCompare(container, stageKey) {
+  const buttons = container.querySelectorAll("[data-stage]");
+  const panels = container.querySelectorAll("[data-stage-pair]");
+  buttons.forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.stage === stageKey);
+  });
+  panels.forEach((panel) => {
+    panel.hidden = panel.dataset.stagePair !== stageKey;
+  });
+}
+
+document.querySelectorAll(".stage-compare-shell").forEach((container) => {
+  const defaultStage = container.dataset.defaultStage || "deduped_articles";
+  switchStageCompare(container, defaultStage);
+});
+</script>

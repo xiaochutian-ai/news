@@ -1,32 +1,58 @@
 <div class="panel">
-  <h2>结果摘要</h2>
-  {% if result %}
-  <div class="stats">
-    <div class="stat">
-      <div class="label">原始候选数</div>
-      <div class="value">{{ result.raw_count }}</div>
+  <div class="section-head">
+    <div class="section-title">
+      <div class="section-kicker">Run Snapshot</div>
+      <h2>结果摘要</h2>
     </div>
-    <div class="stat">
-      <div class="label">过滤后数量</div>
-      <div class="value">{{ result.filtered_count }}</div>
-    </div>
-    <div class="stat">
-      <div class="label">最终入选数</div>
-      <div class="value">{{ result.selected_count }}</div>
-    </div>
+    <div class="hint">摘要区只保留关键数量和本次运行决策信息，便于快速回看执行结果。</div>
   </div>
-  <div class="meta">稿件日期：{{ result.digest_date }} | 来源日期：{{ result.source_date }}</div>
-  <div class="meta">本次数据源：{{ result.selected_sources | join(" / ") }}</div>
-  <div class="meta">过滤策略：{{ result.filter_strategy | default("standard") }}</div>
-  <div class="meta">时间策略：{{ result.time_strategies | default(["source_day"]) | join(" / ") if result.time_strategies else "none" }}</div>
-  <div class="meta">去重策略：{{ result.dedupe_strategy | default("standard") }}</div>
-  <div class="meta files">
-    产物：
-    <a href="{{ result.html_url }}" target="_blank" rel="noopener noreferrer">HTML</a>
-    |
-    <a href="{{ result.json_url }}" target="_blank" rel="noopener noreferrer">JSON</a>
+  {% if result %}
+  <div class="summary-grid">
+    <div class="stats">
+      <div class="stat">
+        <div class="label">原始候选数</div>
+        <div class="value">{{ result.raw_count }}</div>
+        <div class="foot">全部抓取到的候选稿件</div>
+      </div>
+      <div class="stat">
+        <div class="label">过滤后数量</div>
+        <div class="value">{{ result.filtered_count }}</div>
+        <div class="foot">通过民生主题判断后的剩余条目</div>
+      </div>
+      <div class="stat">
+        <div class="label">最终入选数</div>
+        <div class="value">{{ result.selected_count }}</div>
+        <div class="foot">进入晨报草稿的最终条目</div>
+      </div>
+    </div>
+    <div class="summary-meta-card">
+      <div class="summary-meta-grid">
+        <div class="summary-meta-item">
+          <div class="summary-meta-label">时间窗口</div>
+          <div class="summary-meta-value">稿件日期：{{ result.digest_date }}</div>
+          <div class="summary-meta-value">来源日期：{{ result.source_date }}</div>
+        </div>
+        <div class="summary-meta-item">
+          <div class="summary-meta-label">本次数据源</div>
+          <div class="summary-meta-value">{{ result.selected_sources | join(" / ") }}</div>
+        </div>
+        <div class="summary-meta-item">
+          <div class="summary-meta-label">运行策略</div>
+          <div class="summary-meta-value">过滤策略：{{ result.filter_strategy | default("standard") }}</div>
+          <div class="summary-meta-value">时间策略：{{ result.time_strategies | default(["source_day"]) | join(" / ") if result.time_strategies else "none" }}</div>
+          <div class="summary-meta-value">去重策略：{{ result.dedupe_strategy | default("standard") }}</div>
+        </div>
+        <div class="summary-meta-item">
+          <div class="summary-meta-label">产物入口</div>
+          <div class="summary-link-row">
+            <a href="{{ result.html_url }}" target="_blank" rel="noopener noreferrer">HTML</a>
+            <a href="{{ result.json_url }}" target="_blank" rel="noopener noreferrer">JSON</a>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
   {% else %}
-  <p>还没有执行记录，先勾选数据源并点击上方按钮。</p>
+  <div class="empty">还没有执行记录，先在上方完成控制项选择并执行晨报生成。</div>
   {% endif %}
 </div>
